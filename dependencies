@@ -1,0 +1,6 @@
+Software that needs to be installed prior to running Main:
+(will update with versions later. also write script to check dependencies)
+
+Zymkey Base Software
+PyCurl-> libssl, libcurl, pycurl, pyopenssl
+Boto3
