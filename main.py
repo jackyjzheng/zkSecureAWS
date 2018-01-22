@@ -21,10 +21,8 @@ Activator.register_CA_AWS()
 Activator.register_device_cert()
 
 #Registering CA on AWS IoT
-aws_functions.register_CA_AWS(CA_cert_path, CA_key_path)	
 
 #Registering Zymkey device certificate with AWS IoT
-aws_functions.activate_cert_AWS(CA_path, Cert_path)
 
 #Attach policy to this certificate allowing it to publish data
 
