@@ -47,9 +47,27 @@ class AWS_DB_Setup:
           'ip' : '192.168.12.28',
           'signature' : 'TESTSIGNATURE',
           'tempData' : {
-            'temp_C' : 0,
-            'temp_F' : 32
-          },
+            'tempC' : 0,
+            'tempF' : 32
+          }
+        }
+      }
+    )
+
+  def loadCustomData(self, tableName, deviceId, ip, signature, tempC, tempF):
+    table = self.dynamodb.Table(tableName)
+    timestamp = datetime.datetime.now()
+    table.put_item(
+      Item = {
+        'deviceId' : deviceId,
+        'timestamp' : str(timestamp),
+        'data' : {
+          'ip' : ip,
+          'signature' : signature,
+          'tempData' : {
+            'tempC' : tempC,
+            'tempF' : tempF
+          }
         }
       }
     )
