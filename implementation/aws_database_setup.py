@@ -45,6 +45,7 @@ class AWS_DB_Setup:
         'timestamp' : str(timestamp),
         'data' : {
           'ip' : '192.168.12.28',
+          'signature' : 'TESTSIGNATURE',
           'tempData' : {
             'temp_C' : 0,
             'temp_F' : 32
