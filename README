@@ -1,11 +1,12 @@
 File Information:
+
 dependencies - Information regarding all software that needs to be installed prior to automated script being run
+
 bash_scripts - Directory containing all the bash scripts called by our main python script (generate csr, sign csr with ca, etc.)
 
 functions.py - helper functions for activating services on AWS account
 sensor.py - helper functions for collecting data from sensors, signing and formatting to JSON
-
+aws_database_setup.py - Helper functions for activating database servies on AWS account 
 
 main.py - Script for Base Requirement 1, registering IoT device with AWS IoT using Zymkey private key
 publish_data.py - Script for Base Requirement 2 and 3, collecting data from sensor, signing and sending to AWS IoT
- 
