@@ -2,7 +2,36 @@ import openssl
 import boto3
 import os
 
-class AWS_Cert_Activator(object):
+def read_from_file(file_path)
+  '''
+  Simple function to return contents in file as string.
+  '''
+  with open(file_path, 'r') as input_file:
+    string_text = input_file.read()
+  return string_text
+
+class Zymkey_Cert_Manager(object):
+  def __init__(self, ca_cert_path="", ca_key_path="")
+    self.ca_cert = read_from_file(ca_cert_path)
+    self.ca_key = read_from_file(ca_key_path)
+
+  """
+	HELPER FUNCTIONS
+	"""
+  def gen_zymkey_csr(fileName, filePath) #Add filepath to store csr later	
+    subprocess.check_call(['./bash_scripts/gen_csr.sh', fileName, filePath])
+
+  def sign_csr_with_ca(self, filePath, csr_name, crt_name):
+		'''
+		Invokes sign_csr bash script.
+		'''
+		subprocess.check_call(['./bash_scripts/sign_csr.sh', self.ca_cert, self.ca_key, filePath, csr_name, crt_name])
+ 
+  def gen_zymkey_cert(self, filePath, crt_name)
+    gen_zymkey_csr("zymkey.csr", "./")
+    sign_csr_with_ca("./", "zymkey.csr", "zymkey.crt")
+    
+class AWS_Cert_Manager(object):
 	"""
 	CLASS ATTRIBUTES:
 		ca_path=filepath of your CA pem file.
@@ -13,24 +42,13 @@ class AWS_Cert_Activator(object):
 	"""
 
 	def __init__(self, ca_cert_path="", ca_key_path="", device_cert_path=""):
-        	self.ca_path = ca_cert_path
+    self.ca_path = ca_cert_path
 		self.ca_key_path = ca_key_path
-
-		self.ca_cert = read_pem_from_file(ca_cert_path)
-        	self.ca_key = read_pem_from_file(ca_key_path)
-		self.device_cert = read_pem_from_file(device_cert_path)
-	"""
-	HELPER FUNCTIONS
-	"""
-	def read_from_file(file_path)
-		'''
-		Simple read text from file and outupt as string. 
-		'''
-		with open(file_path) as input_file:
-               		string_text = input_file.read()
-		return string_text
-		
-	def gen_verify_csr(registration_code)
+    self.ca_cert = read_from_file(ca_cert_path)
+    self.ca_key = read_from_file(ca_key_path)
+		self.device_cert = read_from_file(device_cert_path)
+  
+  def gen_verify_csr(registration_code)
 		'''
 		Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
 		'''
@@ -42,13 +60,7 @@ class AWS_Cert_Activator(object):
 		req.sign(key, "sha256")	
 		return OpenSSL.crypto.dump_certificate_request(OpenSSL.crypto.FILETYPE_PEM, req)
 
-	def sign_csr_with_ca(ca_cert_path, ca_key_path):
-		'''
-		Invokes sign_csr bash script.
-		'''
-		subprocess.check_call(['./bash_scripts/sign_csr.sh', ca_cert_path, ca_key_path, csr_filename, crt_filename])
-
-	"""
+  """
 	MAIN FUNCTIONS
 	"""
 	def register_CA_AWS(self):
@@ -86,7 +98,7 @@ class AWS_Cert_Activator(object):
 			setAsActive=True,
 		)
 
-	def create_initial_policy():
+  def create_initial_policy():
 		'''
 		Creates a policy for your device to connect and publish data to AWS IoT
 		'''
