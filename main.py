@@ -4,6 +4,8 @@ import os
 import subprocess
 from implementation.functions import *
 
+'''pip install boto3'''
+
 aws_key_id = Input("Please enter your AWS Key id.")
 aws_secret_key = Input("Please enter your AWS secret key.")
 aws_region = Input("Please enter your AWS Region.")
