@@ -1,6 +1,7 @@
-import openssl
+import OpenSSL
 import boto3
 import os
+import subprocess
 
 def read_from_file(file_path):
     '''
@@ -11,21 +12,21 @@ def read_from_file(file_path):
     return string_text
 
 class Zymkey_Cert_Manager(object):
-    def __init__(self, ca_cert_path="", ca_key_path="")
+    def __init__(self, ca_cert_path="", ca_key_path=""):
         self.ca_cert = read_from_file(ca_cert_path)
         self.ca_key = read_from_file(ca_key_path)
 
     """
     HELPER FUNCTIONS
     """
-    def gen_zymkey_csr(fileName, filePath): #Add filepath to store csr later	
+    def gen_zymkey_csr(self, fileName, filePath): #Add filepath to store csr later	
         subprocess.check_call(['./bash_scripts/gen_csr.sh', fileName, filePath])
 
     def sign_csr_with_ca(self, filePath, csr_name, crt_name):
-    '''
-    Invokes sign_csr bash script.
-    '''
-    subprocess.check_call(['./bash_scripts/sign_csr.sh', self.ca_cert, self.ca_key, filePath, csr_name, crt_name])
+        '''
+        Invokes sign_csr bash script.
+        '''
+        subprocess.check_call(['./bash_scripts/sign_csr.sh', self.ca_cert, self.ca_key, filePath, csr_name, crt_name])
 
     def gen_zymkey_cert(self, filePath, crt_name):
         gen_zymkey_csr("zymkey.csr", "./")
@@ -49,9 +50,9 @@ class AWS_Cert_Manager(object):
         self.device_cert = read_from_file(device_cert_path)
     
     def gen_verify_csr(registration_code):
-    '''
-    Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
-    '''
+        '''
+        Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
+        '''
         key = OpenSSL.crypto.PKey()
         key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
         req = OpenSSL.crypto.X509Req()
@@ -63,14 +64,14 @@ class AWS_Cert_Manager(object):
     """
     MAIN FUNCTIONS
     """
-    def register_CA_AWS(self):
-    '''
-    Registers your CA with your AWS IoT accuont
-    '''
+    """def register_CA_AWS(self):
+        '''
+        Registers your CA with your AWS IoT accuont
+        '''
         client = boto3.client('iot')
         response = client.get_registration_code()
         registration_key = response['registrationCode']
-        verification_pem = gen_AWS_verification_csr(registrationCode=registration_key)
+        verification_pem = gen_AWS_verification_csr(registrationCode=registration_key,
 		'fix'
 		verification_cert = sign_csr_with_ca()
 	
@@ -80,6 +81,7 @@ class AWS_Cert_Manager(object):
 			setAsActive=True,
 			allowAutoRegistration=True
 		)
+        )
 		return response
 
 	def register_device_cert_AWS(self):
@@ -113,3 +115,4 @@ class AWS_Cert_Manager(object):
 			policyName='IoTPublishPolicy',
 			target=''
 		)
+                """
