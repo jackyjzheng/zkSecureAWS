@@ -1,5 +1,3 @@
-import boto3
-
 def lambda_handler(event, ccontext):
 	dynamodb = boto3.resource('dynamodb') 
 	table = dynamodb.Table(tableName)
