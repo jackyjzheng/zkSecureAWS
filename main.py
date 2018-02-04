@@ -27,13 +27,15 @@ Zymkey_Manager = Zymkey_Cert_Manager(ca_cert_path, ca_key_path)
 #Creating csr. with Zymkey private key
 Zymkey_Manager.gen_zymkey_csr(fileName="zymkey.csr", filePath="./")
 #Signing Zymkey csr. to create device certificate
-#Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="", crt_name="zymkey.crt")
+Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="zymkey.csr", crt_name="zymkey.crt")
 
-'''AWS_Manager = AWS_Cert_Manager(ca_cert=ca_cert_path, ca_key=ca_key_path, device_cert='./bash_scripts/certificates/zymkey.crt')
+AWS_Manager = AWS_Cert_Manager(ca_cert=ca_cert_path, ca_key=ca_key_path, device_cert='./bash_scripts/certificates/zymkey.crt')
 #Registering CA on AWS IoT
-AWS_Manager.register_CA_AWS()
+Verification_Pem = AWS_Manager.gen_verify_csr()
+with open("verify.csr", 'w') as f:
+    f.write(Verification_Pem)
+'''AWS_Manager.register_CA_AWS()
 #Registering Zymkey device certificate with AWS IoT
 AWS_Manager.register_device_cert()
 #Attach policy to this certificate allowing it to publish data
 '''
-

@@ -49,14 +49,18 @@ class AWS_Cert_Manager(object):
         self.ca_key = read_from_file(ca_key_path)
         self.device_cert = read_from_file(device_cert_path)
     
-    def gen_verify_csr(registration_code):
+    def gen_verify_csr(self):
         '''
         Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
         '''
+        client = boto3.client('iot')
+        respone = client.get_registration_code()
+        registration_key = response['registrationCode']
+        
         key = OpenSSL.crypto.PKey()
         key.generate_key(OpenSSL.crypto.TYPE_RSA, 2048)
         req = OpenSSL.crypto.X509Req()
-        req.get_subject().CN = registrationCode
+        req.get_subject().CN = registration_key
         req.set_pubkey(key)
         req.sign(key, "sha256")	
         return OpenSSL.crypto.dump_certificate_request(OpenSSL.crypto.FILETYPE_PEM, req)
@@ -69,13 +73,8 @@ class AWS_Cert_Manager(object):
         Registers your CA with your AWS IoT accuont
         '''
         client = boto3.client('iot')
-        response = client.get_registration_code()
-        registration_key = response['registrationCode']
-        verification_pem = gen_AWS_verification_csr(registrationCode=registration_key,
 		'fix'
-		verification_cert = sign_csr_with_ca()
-	
-		response = client.register_ca_certificate(
+	    response = client.register_ca_certificate(
 			caCertificate=self.ca_cert,
 			verificationCertificate=verification_cert,
 			setAsActive=True,
@@ -115,4 +114,4 @@ class AWS_Cert_Manager(object):
 			policyName='IoTPublishPolicy',
 			target=''
 		)
-                """
+            """    
