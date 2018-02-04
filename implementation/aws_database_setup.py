@@ -35,6 +35,7 @@ class AWS_DB_Setup:
           'WriteCapacityUnits': 10
       }
     )
+    table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
 
   def loadSampleData(self, tableName):
     table = self.dynamodb.Table(tableName)
@@ -46,6 +47,7 @@ class AWS_DB_Setup:
         'data' : {
           'ip' : '192.168.12.28',
           'signature' : 'TESTSIGNATURE',
+          'encryptedData' : 'ENCRYPTEDTEST',
           'tempData' : {
             'tempC' : 0,
             'tempF' : 32
@@ -54,7 +56,7 @@ class AWS_DB_Setup:
       }
     )
 
-  def loadCustomData(self, tableName, deviceId, ip, signature, tempC, tempF):
+  def loadCustomData(self, tableName, deviceId, ip, signature, encryptedData, tempC, tempF):
     table = self.dynamodb.Table(tableName)
     timestamp = datetime.datetime.now()
     table.put_item(
@@ -64,6 +66,7 @@ class AWS_DB_Setup:
         'data' : {
           'ip' : ip,
           'signature' : signature,
+          'encryptedData' : encryptedData,
           'tempData' : {
             'tempC' : tempC,
             'tempF' : tempF
