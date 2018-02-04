@@ -13,8 +13,8 @@ def read_from_file(file_path):
 
 class Zymkey_Cert_Manager(object):
     def __init__(self, ca_cert_path="", ca_key_path=""):
-        self.ca_cert = read_from_file(ca_cert_path)
-        self.ca_key = read_from_file(ca_key_path)
+        self.ca_cert = (ca_cert_path)
+        self.ca_key = (ca_key_path)
 
     """
     HELPER FUNCTIONS
@@ -45,6 +45,7 @@ class AWS_Cert_Manager(object):
     def __init__(self, ca_cert_path="", ca_key_path="", device_cert_path=""):
         self.ca_path = ca_cert_path
         self.ca_key_path = ca_key_path
+        self.device_path = device_cert_path
         self.ca_cert = read_from_file(ca_cert_path)
         self.ca_key = read_from_file(ca_key_path)
         self.device_cert = read_from_file(device_cert_path)
@@ -54,7 +55,7 @@ class AWS_Cert_Manager(object):
         Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
         '''
         client = boto3.client('iot')
-        respone = client.get_registration_code()
+        response = client.get_registration_code()
         registration_key = response['registrationCode']
         
         key = OpenSSL.crypto.PKey()
@@ -68,36 +69,36 @@ class AWS_Cert_Manager(object):
     """
     MAIN FUNCTIONS
     """
-    """def register_CA_AWS(self):
+    def register_CA_AWS(self, verify_crt_path):
         '''
         Registers your CA with your AWS IoT accuont
         '''
         client = boto3.client('iot')
-		'fix'
-	    response = client.register_ca_certificate(
-			caCertificate=self.ca_cert,
-			verificationCertificate=verification_cert,
-			setAsActive=True,
-			allowAutoRegistration=True
-		)
-        )
-		return response
-
-	def register_device_cert_AWS(self):
+        with open(verify_crt_path, 'r') as f:
+            verification_cert=f.read()
+        response = client.register_ca_certificate(
+            caCertificate=self.ca_cert,
+	    verificationCertificate=verification_cert,
+	    setAsActive=True,
+	    allowAutoRegistration=True
+	)
+	return response
+    
+    def register_device_cert_AWS(self):
 		'''
 		Register your certificate as a valid 'device' on AWS IoT
 		'''
 		boto3client = boto3.client('iot')
-		with open(CA_path) as CA_file:
+		with open(self.ca_path) as CA_file:
                		CA_Pem = CA_file.read()
-        	with open(Cert_path) as Cert_file:
+        	with open(self.device_path) as Cert_file:
                 	Cert_Pem = Cert_file.read()
         	return boto3client.register_certificate(
 			certificatePem=self.device_cert,
 			caCertificatePem=self.ca_cert,
 			setAsActive=True,
 		)
-
+"""
   def create_initial_policy():
 		'''
 		Creates a policy for your device to connect and publish data to AWS IoT
@@ -105,6 +106,7 @@ class AWS_Cert_Manager(object):
 		client = boto3.client('iot')
 		with open() as policy_json
 			policy = policy_json.read()
+aws_region = raw_input("Please enter your AWS Region: ")
 		response = client.create_policy(
 			policyName='IoTPublishPolicy',
 			policyDocument=policy
@@ -114,4 +116,4 @@ class AWS_Cert_Manager(object):
 			policyName='IoTPublishPolicy',
 			target=''
 		)
-            """    
+   """            
