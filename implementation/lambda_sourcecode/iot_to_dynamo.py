@@ -1,4 +1,4 @@
-def lambda_handler(event, ccontext):
+def lambda_handler(event, context):
 	dynamodb = boto3.resource('dynamodb') 
 	table = dynamodb.Table(tableName)
 	table.put_item(
