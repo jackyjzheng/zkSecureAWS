@@ -6,7 +6,7 @@ from implementation.functions import *
 
 '''pip install boto3'''
 '''pip install OpenSSL'''
-
+'''libcurl4-openssl-dev, libssl-dev, pycurl'''
 aws_credentials_path = os.path.expanduser("~") + '/.aws/credentials'
 if not os.path.exists(aws_credentials_path):
     aws_key_id = raw_input("Please enter your AWS Key id: ")
@@ -36,6 +36,6 @@ with open("verify.csr", 'w') as f:
 Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="verify.csr", crt_name="verify.crt")
 print(AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt"))
 #Registering Zymkey device certificate with AWS IoT
-AWS_Manager.register_device_cert_AWS()
+device_register_response = AWS_Manager.register_device_cert_AWS()
 #Attach policy to this certificate allowing it to publish data
-
+AWS_Manager.create_initial_policy(targetARN=device_register_response['certificateArn'])

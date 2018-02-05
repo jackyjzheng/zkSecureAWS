@@ -98,22 +98,20 @@ class AWS_Cert_Manager(object):
 			caCertificatePem=self.ca_cert,
 			setAsActive=True,
 		)
-"""
-  def create_initial_policy():
+    def create_initial_policy(self, targetARN):
 		'''
 		Creates a policy for your device to connect and publish data to AWS IoT
 		'''
 		client = boto3.client('iot')
-		with open() as policy_json
+                with open("implementation/policies/iot_policy.txt") as policy_json:
 			policy = policy_json.read()
-aws_region = raw_input("Please enter your AWS Region: ")
 		response = client.create_policy(
 			policyName='IoTPublishPolicy',
 			policyDocument=policy
 		
 		)
-		response = client.attach_policy(
+                print(response)
+		return client.attach_policy(
 			policyName='IoTPublishPolicy',
-			target=''
-		)
-   """            
+			target=targetARN
+		)            
