@@ -5,6 +5,7 @@ import binascii
 import pycurl
 from OpenSSL import SSL
 import random
+import datetime
 import zymkey
 
 def ZK_AWS_Publish(url, post_field, CA_Path, Cert_Path,):
@@ -41,16 +42,17 @@ if __name__ == "__main__":
     #device_folder = glob.glob(base_dir + '28*')[0]
     #device_file = device_folder + '/w1_slave'	
     boto3client = boto3.client('iot')
-    topic = "demo"
+    topic = "Zymkey"
     AWS_ENDPOINT = "https://" + str(boto3client.describe_endpoint()['endpointAddress']) + ":8443/topics/" + topic + "?qos=1"    
-    device_id = 1
+    device_id = "1"
     ip = "192.168.12.28"
     while True:
+        timestamp = datetime.datetime.now()
         temp_data = {"tempF": random.randint(70,100), "tempC" : random.randint(35, 50)}
         encrypted_data = zymkey.client.lock(bytearray(json.dumps(temp_data)))
         signature = zymkey.client.sign(encrypted_data)
         data = {"ip": ip, "signature": binascii.hexlify(signature), "encryptedData": binascii.hexlify(encrypted_data), "tempData": temp_data}
-        post_field = {"deviceId": device_id, "data": data}
+        post_field = {"deviceId": device_id, "timestamp": str(timestamp), "data": data}
         json_data = json.dumps(post_field)
         ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt')
 

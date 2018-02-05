@@ -44,7 +44,7 @@ AWS_Manager.create_initial_policy(targetARN=device_register_response['certificat
 
 # Create the DynamoDB Table
 dbSetup = AWS_DB_Setup()
-dbsetup.createTable('IoT')
+dbSetup.createTable('IoT')
 
 # Create the lambda function and set up the trigger for AWS IoT -> DynamoDB
 createLambdaFunction('iot_to_dynamo.py')
