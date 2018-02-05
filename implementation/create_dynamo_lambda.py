@@ -18,17 +18,33 @@ def createLambdaFunction(lambdaFileName):
     lambda_document = lambda_policy.read()
 
   # Creating the IAM role with the specified Trust
-  create_role_response = iam_client.create_role(
-    RoleName = 'lambda_dynamo_role',
-    AssumeRolePolicyDocument = trust_document,
-    Description = 'AWS role given to lambda'
-  )
+  try:
+    create_role_response = iam_client.create_role(
+      RoleName = 'lambda_dynamo_role',
+      AssumeRolePolicyDocument = trust_document,
+      Description = 'AWS role given to lambda'
+    )
+  except Exception as e:
+    error_code = e.response["Error"]["Code"]
+    if error_code == "EntityAlreadyExists":
+      create_role_response = iam_client.get_role(
+        RoleName = 'lambda_dynamo_role'
+      )
+      print("The role already exists...skipping role creation...")
 
-  create_policy_response = iam_client.create_policy(
-    PolicyName = 'lambda_dynamofullaccess',
-    PolicyDocument = lambda_document,
-    Description = 'Full dynamoDB access rights policy with logs'
-  )
+  try:
+    create_policy_response = iam_client.create_policy(
+      PolicyName = 'lambda_dynamofullaccess',
+      PolicyDocument = lambda_document,
+      Description = 'Full dynamoDB access rights policy with logs'
+    )
+  except Exception as e:
+    error_code = e.response["Error"]["Code"]
+    if error_code == "EntityAlreadyExists":
+      create_policy_response = {}
+      create_policy_response['Policy'] = {}
+      create_policy_response['Policy']['Arn'] = 'arn:aws:iam::865031943857:policy/lambda_dynamofullaccess'
+      print("The policy already exists...skipping policy creation...")
 
   attach_response = iam_client.attach_role_policy(
     RoleName = 'lambda_dynamo_role',
@@ -63,10 +79,58 @@ def createLambdaFunction(lambdaFileName):
       )
     except Exception as e:
       error_code = e.response["Error"]["Code"]
-      if error_code == "InvalidParameterValueException":
+      if error_code == 'InvalidParameterValueException':
         print("Created role needs to replicate across AWS...retrying...")
         time.sleep(5)
         continue
+      if error_code == 'ResourceConflictException':
+        print('Lambda function exists...skipping lambda function creation...')
+        create_lambda_response = {}
+        create_lambda_response['FunctionArn'] = lambda_client.get_function(
+          FunctionName = fileNoPy
+        )['Configuration']['FunctionArn']
+        break
       else:
         print(e)
+    break
+
+  while True:
+    try:
+      iot_client = boto3.client('iot')
+      iot_client.create_topic_rule(
+        ruleName = 'publish_to_dynamo',
+        topicRulePayload = {
+          'sql': 'SELECT * FROM \'Zymkey\'',
+          'description': 'Lambda function to forward incoming messages from zymkey to the IoT dynamoDB table',
+          'actions': [
+            {
+              'lambda': {
+                'functionArn': create_lambda_response['FunctionArn']
+              }
+            }
+          ]
+        }
+      )
+    except Exception as e:
+      error_code = e.response["Error"]["Code"]
+      if error_code == 'ResourceAlreadyExistsException':
+        print("Topic rule already exists...skipping topic rule creation...")
+    create_topic_rule_response = iot_client.get_topic_rule(
+      ruleName = 'publish_to_dynamo'
+    )
+
+    break
+
+  while True:
+    try:
+      lambda_client = boto3.client('lambda')
+      add_permission_response = lambda_client.add_permission(
+        FunctionName = create_lambda_response['FunctionArn'],
+        StatementId = '1234567890',
+        Action = 'lambda:InvokeFunction',
+        Principal = 'iot.amazonaws.com',
+        SourceArn = create_topic_rule_response['ruleArn']
+      )
+    except Exception as e:
+      print(e)
     break
