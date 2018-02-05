@@ -134,6 +134,6 @@ def createLambdaFunction(lambdaFileName):
       )
     except Exception as e:
       error_code = e.response["Error"]["Code"]
-      if error_code == 'ResourceConflictException'
+      if error_code == 'ResourceConflictException':
         print("Lambda trigger already exists...skipping lambda trigger creation...")
     break
