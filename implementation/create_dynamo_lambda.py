@@ -115,6 +115,7 @@ def createLambdaFunction(lambdaFileName):
       error_code = e.response["Error"]["Code"]
       if error_code == 'ResourceAlreadyExistsException':
         print("Topic rule already exists...skipping topic rule creation...")
+
     create_topic_rule_response = iot_client.get_topic_rule(
       ruleName = 'publish_to_dynamo'
     )
@@ -132,5 +133,7 @@ def createLambdaFunction(lambdaFileName):
         SourceArn = create_topic_rule_response['ruleArn']
       )
     except Exception as e:
-      print(e)
+      error_code = e.response["Error"]["Code"]
+      if error_code == 'ResourceConflictException'
+        print("Lambda trigger already exists...skipping lambda trigger creation...")
     break
