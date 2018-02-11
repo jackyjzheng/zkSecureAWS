@@ -32,6 +32,7 @@ def createLambdaFunction(lambdaFileName):
       )
       print("The role already exists...skipping role creation...")
 
+  # Creating the policy
   try:
     create_policy_response = iam_client.create_policy(
       PolicyName = 'lambda_dynamofullaccess',
