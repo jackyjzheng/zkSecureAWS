@@ -1,41 +1,50 @@
 import boto3
 import datetime
+from aws_config_manager import AWS_Config_Manager
 
 class AWS_DB_Setup:
 
   def __init__(self):
     self.dynamodb = boto3.resource('dynamodb')
+    self.aws_config = AWS_Config_Manager()
 
   # Config (access_key, secret_key, region specified in the ~/.aws/ directory)
   def createTable(self, tableName):
-    table = self.dynamodb.create_table(
-      TableName = tableName,
-      KeySchema = [
-        {
-            'AttributeName': 'deviceId',
-            'KeyType': 'HASH'  #Partition key
-        },
-        {
-            'AttributeName': 'timestamp',
-            'KeyType': 'RANGE'  #Sort key
+    try:
+      table = self.dynamodb.create_table(
+        TableName = tableName,
+        KeySchema = [
+          {
+              'AttributeName': 'deviceId',
+              'KeyType': 'HASH'  #Partition key
+          },
+          {
+              'AttributeName': 'timestamp',
+              'KeyType': 'RANGE'  #Sort key
+          }
+        ],
+        AttributeDefinitions = [
+          {
+              'AttributeName': 'deviceId',
+              'AttributeType': 'S'
+          },
+          {
+              'AttributeName': 'timestamp',
+              'AttributeType': 'S'
+          }
+        ],
+        ProvisionedThroughput = {
+            'ReadCapacityUnits': 10,
+            'WriteCapacityUnits': 10
         }
-      ],
-      AttributeDefinitions = [
-        {
-            'AttributeName': 'deviceId',
-            'AttributeType': 'S'
-        },
-        {
-            'AttributeName': 'timestamp',
-            'AttributeType': 'S'
-        }
-      ],
-      ProvisionedThroughput = {
-          'ReadCapacityUnits': 10,
-          'WriteCapacityUnits': 10
-      }
-    )
-    table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
+      )
+      table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
+    except Exception as e:
+      error_code = e.response["Error"]["Code"]
+      if error_code == "ResourceInUseException":
+        print('Table already exists...skipping table creation and updating table name in /.aws/zymkeyconfig...')
+    finally:
+      self.aws_config.setTable(tableName)
 
   def loadSampleData(self, tableName):
     table = self.dynamodb.Table(tableName)
