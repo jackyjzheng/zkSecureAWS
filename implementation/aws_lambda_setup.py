@@ -11,8 +11,14 @@ class AWS_Lambda_Setup:
     self.aws_config = AWS_Config_Manager()
     self.cur_dir = os.getcwd()
 
-  def defaultLambdaSetup():
-    pass
+  def defaultLambdaSetup(self):
+    self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt')
+    self.createPolicy('lambda_dynamo_policy.txt')
+    self.attachRolePolicy()
+    self.createLambdaFunction('iot_to_dynamo.py', 'lambda_handler')
+    self.createTopicRule('publish_to_dynamo', 'Zymkey')
+    self.createLambdaTrigger('1234567890')
+    print('Successful setup, publish data to topic \'Zymkey\' to get started!')
 
   # roleName is default zymkey_role
   # trustFile and policyFile will be looked for under the policies folder in the repo
