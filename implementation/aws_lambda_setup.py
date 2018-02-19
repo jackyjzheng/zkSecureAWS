@@ -48,6 +48,7 @@ class AWS_Lambda_Setup:
       self.aws_config.setRoleName(roleName)
 
   def createPolicy(self, policyFile):
+    print('Creating policy...')
     policyFilePath = os.path.join(self.cur_dir, 'policies', policyFile)
     if not os.path.isfile(policyFilePath):
       print('Policy file could not be found at ' + policyFilePath)
@@ -73,6 +74,7 @@ class AWS_Lambda_Setup:
         print("Policy already exists...skipping policy creation. Unable to automatically update /.aws/zymkeyconfig... Manually input the policy_arn")
 
   def attachRolePolicy(self):
+    print('Attaching the role to the policy...')
     attach_response = iam_client.attach_role_policy(
       RoleName = self.aws_config.role_name,
       PolicyArn = self.aws_config.policy_arn
