@@ -12,7 +12,8 @@ class AWS_Lambda_Setup:
     self.cur_dir = os.getcwd()
 
   def defaultLambdaSetup(self):
-    self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt')
+    if self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt') == -1:
+      return -1
     if self.createPolicy('lambda_dynamo_policy.txt') == -1:
       return -1
     self.attachRolePolicy()
@@ -30,6 +31,7 @@ class AWS_Lambda_Setup:
     trustFilePath = os.path.join(self.cur_dir, 'policies', trustFile)
     if not os.path.isfile(trustFilePath):
       print('Trust file could not be found at ' + trustFilePath)
+      print('FAILURE...exiting script...')
       return -1
 
     iam_client = boto3.client('iam')
