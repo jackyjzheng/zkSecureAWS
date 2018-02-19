@@ -75,6 +75,7 @@ class AWS_Lambda_Setup:
 
   def attachRolePolicy(self):
     print('Attaching the role to the policy...')
+    iam_client = boto3.client('iam')
     attach_response = iam_client.attach_role_policy(
       RoleName = self.aws_config.role_name,
       PolicyArn = self.aws_config.policy_arn
