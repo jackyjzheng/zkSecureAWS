@@ -10,6 +10,7 @@ class AWS_DB_Setup:
 
   # Config (access_key, secret_key, region specified in the ~/.aws/ directory)
   def createTable(self, tableName):
+    print('Creating DynamoDB table...this may take up to 20 seconds...')
     try:
       table = self.dynamodb.create_table(
         TableName = tableName,

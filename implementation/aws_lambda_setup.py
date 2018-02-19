@@ -19,6 +19,7 @@ class AWS_Lambda_Setup:
   # Takes in name of the .py file (ie. trust_document.txt)
   # returns -1 for error
   def createRole(self, roleName, trustFile, policyFile):
+    print('Creating role...')
     trustFilePath = os.path.join(self.cur_dir, 'policies', trustFile)
     if not os.path.isfile(trustFilePath):
       print('Trust file could not be found at ' + trustFilePath)
