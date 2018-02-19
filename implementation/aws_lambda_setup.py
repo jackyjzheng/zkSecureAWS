@@ -14,12 +14,13 @@ class AWS_Lambda_Setup:
   def defaultLambdaSetup():
     pass
 
+  # roleName is default zymkey_role
   # trustFile and policyFile will be looked for under the policies folder in the repo
   # Takes in name of the .py file (ie. trust_document.txt)
   # returns -1 for error
-  def createRole(trustFile, policyFile):
+  def createRole(self, roleName, trustFile, policyFile):
     trustFilePath = os.path.join(self.cur_dir, 'policies', trustFile)
-    if (!os.path.isfile(trustFilePath)):
+    if not os.path.isfile(trustFilePath):
       print('Trust file could not be found at ' + trustFilePath)
       return -1
 
@@ -29,7 +30,6 @@ class AWS_Lambda_Setup:
 
     # Creating the IAM role with the specified Trust
     try:
-      roleName = 'lambda_dynamo_role'
       create_role_response = iam_client.create_role(
         RoleName = roleName,
         AssumeRolePolicyDocument = trust_document,
@@ -46,9 +46,9 @@ class AWS_Lambda_Setup:
       self.aws_config.setRole(create_role_response['Role']['Arn'])
       self.aws_config.setRoleName(roleName)
 
-  def createPolicy(policyFile):
+  def createPolicy(self, policyFile):
     policyFilePath = os.path.join(self.cur_dir, 'policies', policyFile)
-    if (!os.path.isfile(policyFilePath)):
+    if not os.path.isfile(policyFilePath):
       print('Policy file could not be found at ' + policyFilePath)
       return -1
 
@@ -71,7 +71,7 @@ class AWS_Lambda_Setup:
       if error_code == "EntityAlreadyExists":
         print("Policy already exists...skipping policy creation. Unable to automatically update /.aws/zymkeyconfig... Manually input the policy_arn")
 
-  def attachRolePolicy():
+  def attachRolePolicy(self):
     attach_response = iam_client.attach_role_policy(
       RoleName = self.aws_config.role_name,
       PolicyArn = self.aws_config.policy_arn
@@ -79,7 +79,7 @@ class AWS_Lambda_Setup:
 
   # default lambdaFileName is iot_to_dynamo.py
   # default lambdaFunctionHandler is lambda_handler
-  def createLambdaFunction(lambdaFileName, lambdaFunctionHandler):
+  def createLambdaFunction(self, lambdaFileName, lambdaFunctionHandler):
     # Download the zip file with the lambda code and save it in the same directory as this script.
     fileNoPy = lambdaFileName.replace(' ', '')[:-3] # Remove the .py extension from the file
     lambdaCodeDir = os.path.join(self.cur_dir, 'lambda_sourcecode')
@@ -99,7 +99,7 @@ class AWS_Lambda_Setup:
           FunctionName = fileNoPy,
           Runtime = 'python2.7',
           Role = self.aws_config.role_arn,
-          Handler = fileNoPy + '.' + lambdaFunctionHandler
+          Handler = fileNoPy + '.' + lambdaFunctionHandler,
           Code = {
             'ZipFile': filecontent
           },
@@ -124,7 +124,7 @@ class AWS_Lambda_Setup:
 
   # default ruleName is publish_to_dynamo
   # default subscribedTopic is Zymkey
-  def createTopicRule(topicRuleName, subscribedTopic):
+  def createTopicRule(self, topicRuleName, subscribedTopic):
     try:
       iot_client = boto3.client('iot')
       iot_client.create_topic_rule(
@@ -154,7 +154,7 @@ class AWS_Lambda_Setup:
     self.aws_config.setTopicRule(create_topic_rule_response['ruleArn'])
 
   # statementId is an arbitrary identifier for the trigger
-  def createLambdaTrigger(statementId)
+  def createLambdaTrigger(self, statementId):
     try:
       lambda_client = boto3.client('lambda')
       add_permission_response = lambda_client.add_permission(
