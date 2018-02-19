@@ -3,7 +3,7 @@ import boto3
 import os
 import subprocess
 from implementation.functions import *
-from implementation.create_dynamo_lambda import *
+from implementation.aws_lambda_setup import AWS_Lambda_Setup
 from implementation.aws_database_setup import AWS_DB_Setup
 
 '''pip install boto3'''
@@ -47,4 +47,5 @@ dbSetup = AWS_DB_Setup()
 dbSetup.createTable('IoT')
 
 # Create the lambda function and set up the trigger for AWS IoT -> DynamoDB
-createLambdaFunction('iot_to_dynamo.py')
+lambdaSetup = AWS_Lambda_Setup()
+lambdaSetup.defaultLambdaSetup()
