@@ -13,7 +13,8 @@ class AWS_Lambda_Setup:
 
   def defaultLambdaSetup(self):
     self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt')
-    self.createPolicy('lambda_dynamo_policy.txt')
+    if self.createPolicy('lambda_dynamo_policy.txt') == -1:
+      return -1
     self.attachRolePolicy()
     self.createLambdaFunction('iot_to_dynamo.py', 'lambda_handler')
     self.createTopicRule('publish_to_dynamo', 'Zymkey')
@@ -77,7 +78,10 @@ class AWS_Lambda_Setup:
     except Exception as e:
       error_code = e.response["Error"]["Code"]
       if error_code == "EntityAlreadyExists":
-        print("Policy already exists...skipping policy creation. Unable to automatically update /.aws/zymkeyconfig... Manually input the policy_arn")
+        print('Policy already exists...skipping policy creation. Unable to automatically update /.aws/zymkeyconfig... Manually input the policy_arn')
+        print('Cannot parse policy_arn from /.aws/zymkeyconfig... Must manually input into the config file')
+        print('FAILURE...exiting script...')
+        return -1
 
   def attachRolePolicy(self):
     print('Attaching the role to the policy...')
