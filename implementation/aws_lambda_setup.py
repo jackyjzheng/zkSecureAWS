@@ -84,10 +84,15 @@ class AWS_Lambda_Setup:
   # default lambdaFileName is iot_to_dynamo.py
   # default lambdaFunctionHandler is lambda_handler
   def createLambdaFunction(self, lambdaFileName, lambdaFunctionHandler):
+    print('Creating lambda function')
     # Download the zip file with the lambda code and save it in the same directory as this script.
     fileNoPy = lambdaFileName.replace(' ', '')[:-3] # Remove the .py extension from the file
     lambdaCodeDir = os.path.join(self.cur_dir, 'lambda_sourcecode')
     filePath = os.path.join(lambdaCodeDir, lambdaFileName)
+    if not os.path.isfile(filePath):
+      print('\'' + lambdaFileName + '\' could not be found at \'' + filePath + '\'')
+      return -1
+
     fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy)
     zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
 
@@ -123,12 +128,15 @@ class AWS_Lambda_Setup:
           )['Configuration']['FunctionArn']
           break
         else:
+          print('An error occured...lambda_arn has been unset in /.aws/zymkeyconfig')
           print(e)
+          break
     self.aws_config.setLambda(create_lambda_response['FunctionArn'])
 
-  # default ruleName is publish_to_dynamo
+  # default topicRuleName is publish_to_dynamo
   # default subscribedTopic is Zymkey
   def createTopicRule(self, topicRuleName, subscribedTopic):
+    print('Creating topic rule...')
     try:
       iot_client = boto3.client('iot')
       iot_client.create_topic_rule(
@@ -159,6 +167,7 @@ class AWS_Lambda_Setup:
 
   # statementId is an arbitrary identifier for the trigger
   def createLambdaTrigger(self, statementId):
+    print('Creating lambda trigger...')
     try:
       lambda_client = boto3.client('lambda')
       add_permission_response = lambda_client.add_permission(
