@@ -9,7 +9,7 @@ class AWS_Lambda_Setup:
 
   def __init__(self):
     self.aws_config = AWS_Config_Manager()
-    self.cur_dir = os.getcwd()
+    self.cur_dir = os.path.dirname(__file__)
 
   def defaultLambdaSetup(self):
     if self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt') == -1:
