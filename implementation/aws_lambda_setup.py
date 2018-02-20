@@ -80,10 +80,13 @@ class AWS_Lambda_Setup:
     except Exception as e:
       error_code = e.response["Error"]["Code"]
       if error_code == "EntityAlreadyExists":
-        print('Policy already exists...skipping policy creation. Unable to automatically update /.aws/zymkeyconfig... Manually input the policy_arn')
-        print('Cannot parse policy_arn from /.aws/zymkeyconfig... Must manually input into the config file')
-        print('FAILURE...exiting script...')
-        return -1
+        print('Policy already exists...skipping policy creation...using the policy_arn from /.aws/zymkeyconfig')
+        if self.aws_config.policy_arn is '':
+          print('Cannot get the existing policy_arn from /.aws/zymkeyconfig... Check /.aws/zymkeyconfig')
+          print('FAILURE...exiting script...')
+          return -1
+        else:
+          return 0
 
   def attachRolePolicy(self):
     print('Attaching the role to the policy...')
