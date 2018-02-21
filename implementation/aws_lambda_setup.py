@@ -53,6 +53,8 @@ class AWS_Lambda_Setup:
           RoleName = roleName
         )
         print('Role already exists...skipping role creation and updating role arn in ~/.aws/zymkeyconfig...')
+      else:
+        print(e)
     except Exception as e:
       print(e)
     finally:
@@ -93,6 +95,8 @@ class AWS_Lambda_Setup:
           return -1 # Policy exists in AWS, but not specified in the zymkeyconfig
         else:
           return 0 # Policy exists in AWS, and is correctly specified in zymkeyconfig so we continue
+      else:
+        print(e)
     except Exception as e:
       print(e)
 
@@ -147,7 +151,7 @@ class AWS_Lambda_Setup:
           print('Created role needs to replicate across AWS...retrying...')
           time.sleep(5)
           continue
-        if error_code == 'ResourceConflictException':
+        elif error_code == 'ResourceConflictException':
           print('Lambda function already exists...skipping lambda function creation and updating lambda arn in ~/.aws/zymkeyconfig')
           create_lambda_response['FunctionArn'] = lambda_client.get_function(
             FunctionName = functionName
@@ -185,6 +189,8 @@ class AWS_Lambda_Setup:
       error_code = e.response['Error']['Code']
       if error_code == 'ResourceAlreadyExistsException':
         print('Topic rule already exists...skipping topic rule creation and updating topic rule arn in ~/.aws/zymkeyconfig...')
+      else:
+        print(e)
     except Exception as e:
       print(e)
 
@@ -212,5 +218,7 @@ class AWS_Lambda_Setup:
       error_code = e.response['Error']['Code']
       if error_code == 'ResourceConflictException':
         print('Lambda trigger already exists...skipping lambda trigger creation...')
+      else:
+        print(e)
     except Exception as e:
       print(e)
