@@ -14,11 +14,13 @@ class AWS_Config_Manager:
     self.lambda_arn = ''
     self.topic_rule_arn = ''
     self.table_name = ''
+    self.subscribed_topic = ''
     self.initializeConfig()
 
   def initializeConfig(self):
     fileExists = os.path.exists(AWS_Config_Manager.CONFIG_PATH)
     if (fileExists):
+      # Set the class member variables to config variables
       self.config.read(AWS_Config_Manager.CONFIG_PATH)
       self.role_arn = self.config.get(AWS_Config_Manager.SECTION_NAME, 'role_arn')
       self.role_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'role_name')
@@ -26,7 +28,9 @@ class AWS_Config_Manager:
       self.lambda_arn = self.config.get(AWS_Config_Manager.SECTION_NAME, 'lambda_arn')
       self.topic_rule = self.config.get(AWS_Config_Manager.SECTION_NAME, 'topic_rule_arn')
       self.table_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'table_name')
+      self.subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic')
     else:
+      # If file doesn't exist, set the variables of the config object to empty
       self.config.add_section(AWS_Config_Manager.SECTION_NAME)
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'role_arn', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'role_name', '')
@@ -34,8 +38,10 @@ class AWS_Config_Manager:
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'lambda_arn', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'topic_rule_arn', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', '')
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic', '')
       self.saveConfig()
 
+  # Writes the config object in the class to a config file
   def saveConfig(self):
     with open(AWS_Config_Manager.CONFIG_PATH, 'w') as configfile:
       self.config.write(configfile)
@@ -68,4 +74,9 @@ class AWS_Config_Manager:
   def setTable(self, tableName):
     self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', tableName)
     self.table_name = tableName
+    self.saveConfig()
+
+  def setSubscribedTopic(self, subscribedTopic):
+    self.config.set(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic', subscribedTopic)
+    self.subscribed_topic = subscribedTopic
     self.saveConfig()

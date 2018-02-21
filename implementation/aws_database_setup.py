@@ -1,6 +1,7 @@
 import boto3
 import datetime
 from aws_config_manager import AWS_Config_Manager
+from botocore.exceptions import ClientError
 
 class AWS_DB_Setup:
 
@@ -10,7 +11,7 @@ class AWS_DB_Setup:
 
   # Config (access_key, secret_key, region specified in the ~/.aws/ directory)
   def createTable(self, tableName):
-    print('Creating DynamoDB table...this may take up to 20 seconds...')
+    print('---Creating DynamoDB table...this may take up to 20 seconds---')
     try:
       table = self.dynamodb.create_table(
         TableName = tableName,
@@ -40,7 +41,7 @@ class AWS_DB_Setup:
         }
       )
       table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
-    except Exception as e:
+    except ClientError as e:
       error_code = e.response["Error"]["Code"]
       if error_code == "ResourceInUseException":
         print('Table already exists...skipping table creation and updating table name in /.aws/zymkeyconfig...')

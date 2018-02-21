@@ -4,6 +4,7 @@ import os
 import time
 from os.path import basename
 from aws_config_manager import AWS_Config_Manager
+from botocore.exceptions import ClientError
 
 class AWS_Lambda_Setup:
 
@@ -12,22 +13,22 @@ class AWS_Lambda_Setup:
     self.cur_dir = os.path.dirname(__file__)
 
   def defaultLambdaSetup(self):
-    if self.createRole('zymkey_role', 'trust_document.txt', 'lambda_dynamo_policy.txt') == -1:
+    if self.createRole('zymkey_role', 'trust_document.txt') == -1:
       return -1
-    if self.createPolicy('lambda_dynamo_policy.txt') == -1:
+    if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt') == -1:
       return -1
     self.attachRolePolicy()
-    self.createLambdaFunction('iot_to_dynamo.py', 'lambda_handler')
+    if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler') == -1:
+      return -1
     self.createTopicRule('publish_to_dynamo', 'Zymkey')
     self.createLambdaTrigger('1234567890')
-    print('Successful setup, publish data to topic \'Zymkey\' to get started!')
+    print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
 
-  # roleName is default zymkey_role
-  # trustFile and policyFile will be looked for under the policies folder in the repo
-  # Takes in name of the .py file (ie. trust_document.txt)
+  # roleName is the name of the role to be created
+  # trustFile located under the policies folder in the repo (ie. trust_document.txt)
   # returns -1 for error
-  def createRole(self, roleName, trustFile, policyFile):
-    print('Creating role...')
+  def createRole(self, roleName, trustFile):
+    print('---Creating role---')
     trustFilePath = os.path.join(self.cur_dir, 'policies', trustFile)
     if not os.path.isfile(trustFilePath):
       print('Trust file could not be found at ' + trustFilePath)
@@ -45,22 +46,30 @@ class AWS_Lambda_Setup:
         AssumeRolePolicyDocument = trust_document,
         Description = 'AWS role given to lambda'
       )
-    except Exception as e:
-      error_code = e.response["Error"]["Code"]
-      if error_code == "EntityAlreadyExists":
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
+      if error_code == 'EntityAlreadyExists':
         create_role_response = iam_client.get_role(
           RoleName = roleName
         )
-        print("Role already exists...skipping role creation and updating role arn in /.aws/zymkeyconfig...")
+        print('Role already exists...skipping role creation and updating role arn in ~/.aws/zymkeyconfig...')
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
     finally:
       self.aws_config.setRole(create_role_response['Role']['Arn'])
       self.aws_config.setRoleName(roleName)
 
-  def createPolicy(self, policyFile):
-    print('Creating policy...')
+  # policyName is the name of the policy to be created
+  # policyFile located under the policies folder in the repo (ie. lambda_dynamo_policy.txt)
+  # returns -1 for error, 0 for success
+  def createPolicy(self, policyName, policyFile):
+    print('---Creating policy---')
     policyFilePath = os.path.join(self.cur_dir, 'policies', policyFile)
     if not os.path.isfile(policyFilePath):
       print('Policy file could not be found at ' + policyFilePath)
+      print('FAILURE...exiting script...')
       return -1
 
     iam_client = boto3.client('iam')
@@ -70,45 +79,51 @@ class AWS_Lambda_Setup:
 
     # Creating the policy
     try:
-      policyName = 'lambda_dynamofullaccess'
       create_policy_response = iam_client.create_policy(
         PolicyName = policyName,
         PolicyDocument = lambda_document,
         Description = 'Full dynamoDB access rights policy with logs'
       )
       self.aws_config.setPolicy(create_policy_response['Policy']['Arn'])
-    except Exception as e:
-      error_code = e.response["Error"]["Code"]
-      if error_code == "EntityAlreadyExists":
-        print('Policy already exists...skipping policy creation...using the policy_arn from /.aws/zymkeyconfig')
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
+      if error_code == 'EntityAlreadyExists':
+        print('Policy already exists...skipping policy creation...using the policy_arn from ~/.aws/zymkeyconfig')
         if self.aws_config.policy_arn is '':
-          print('Cannot get the existing policy_arn from /.aws/zymkeyconfig... Check /.aws/zymkeyconfig')
+          print('Cannot get the existing policy_arn from ~/.aws/zymkeyconfig... Check ~/.aws/zymkeyconfig')
           print('FAILURE...exiting script...')
-          return -1
+          return -1 # Policy exists in AWS, but not specified in the zymkeyconfig
         else:
-          return 0
+          return 0 # Policy exists in AWS, and is correctly specified in zymkeyconfig so we continue
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
 
   def attachRolePolicy(self):
-    print('Attaching the role to the policy...')
+    print('---Attaching the role to the policy---')
     iam_client = boto3.client('iam')
     attach_response = iam_client.attach_role_policy(
       RoleName = self.aws_config.role_name,
       PolicyArn = self.aws_config.policy_arn
     )
 
-  # default lambdaFileName is iot_to_dynamo.py
-  # default lambdaFunctionHandler is lambda_handler
-  def createLambdaFunction(self, lambdaFileName, lambdaFunctionHandler):
-    print('Creating lambda function')
+  # functionName is the unique name to call this lambda function on AWS
+  # lambdaFileName is the name of the lambda function code with extension (ie. iot_to_dynamo.py)
+  # lambdaFunctionHandler is name of function to be ran inside the file, lambdaFileName (ie. lambda_handler)
+  # returns -1 for error
+  def createLambdaFunction(self, functionName, lambdaFileName, lambdaFunctionHandler):
+    print('---Creating lambda function---')
     # Download the zip file with the lambda code and save it in the same directory as this script.
     fileNoPy = lambdaFileName.replace(' ', '')[:-3] # Remove the .py extension from the file
     lambdaCodeDir = os.path.join(self.cur_dir, 'lambda_sourcecode')
     filePath = os.path.join(lambdaCodeDir, lambdaFileName)
     if not os.path.isfile(filePath):
       print('\'' + lambdaFileName + '\' could not be found at \'' + filePath + '\'')
+      print('FAILURE...exiting script...')
       return -1
 
-    fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy)
+    fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy) # Where we will create the zip of the lamdba source code
     zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
 
 
@@ -120,7 +135,7 @@ class AWS_Lambda_Setup:
       try:
         lambda_client = boto3.client('lambda')
         create_lambda_response = lambda_client.create_function(
-          FunctionName = fileNoPy,
+          FunctionName = functionName,
           Runtime = 'python2.7',
           Role = self.aws_config.role_arn,
           Handler = fileNoPy + '.' + lambdaFunctionHandler,
@@ -130,28 +145,30 @@ class AWS_Lambda_Setup:
           Description = 'Lambda function for publishing data from IoT to DynamoDB',
         )
         break
-      except Exception as e:
-        error_code = e.response["Error"]["Code"]
+      except ClientError as e:
+        error_code = e.response['Error']['Code']
         if error_code == 'InvalidParameterValueException':
-          print("Created role needs to replicate across AWS...retrying...")
+          print('Created role needs to replicate across AWS...retrying...')
           time.sleep(5)
           continue
-        if error_code == 'ResourceConflictException':
-          print('Lambda function already exists...skipping lambda function creation and updating lambda arn in /.aws/zymkeyconfig')
+        elif error_code == 'ResourceConflictException':
+          print('Lambda function already exists...skipping lambda function creation and updating lambda arn in ~/.aws/zymkeyconfig')
           create_lambda_response['FunctionArn'] = lambda_client.get_function(
-            FunctionName = fileNoPy
+            FunctionName = functionName
           )['Configuration']['FunctionArn']
           break
         else:
-          print('An error occured...lambda_arn has been unset in /.aws/zymkeyconfig')
+          print('An error occured...lambda_arn has been unset in ~/.aws/zymkeyconfig')
           print(e)
           break
+      except Exception as e:
+        print(e)
     self.aws_config.setLambda(create_lambda_response['FunctionArn'])
 
-  # default topicRuleName is publish_to_dynamo
-  # default subscribedTopic is Zymkey
+  # topicRuleName is name of topic rule to be created
+  # subscribedTopic is name of the IoT topic where data will be published
   def createTopicRule(self, topicRuleName, subscribedTopic):
-    print('Creating topic rule...')
+    print('---Creating topic rule---')
     try:
       iot_client = boto3.client('iot')
       iot_client.create_topic_rule(
@@ -168,10 +185,14 @@ class AWS_Lambda_Setup:
           ]
         }
       )
-    except Exception as e:
-      error_code = e.response["Error"]["Code"]
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
       if error_code == 'ResourceAlreadyExistsException':
-        print('Topic rule already exists...skipping topic rule creation and updating topic rule arn in /.aws/zymkeyconfig...')
+        print('Topic rule already exists...skipping topic rule creation and updating topic rule arn in ~/.aws/zymkeyconfig...')
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
 
     # Topic rule response set outside the try except block because create_topic_rule from AWS API returns nothing
     # so we must try to create the rule then check the topicRuleName argument to see what its ARN is
@@ -179,10 +200,11 @@ class AWS_Lambda_Setup:
       ruleName = topicRuleName
     )
     self.aws_config.setTopicRule(create_topic_rule_response['ruleArn'])
+    self.aws_config.setSubscribedTopic(subscribedTopic)
 
   # statementId is an arbitrary identifier for the trigger
   def createLambdaTrigger(self, statementId):
-    print('Creating lambda trigger...')
+    print('---Creating lambda trigger---')
     try:
       lambda_client = boto3.client('lambda')
       add_permission_response = lambda_client.add_permission(
@@ -192,7 +214,11 @@ class AWS_Lambda_Setup:
         Principal = 'iot.amazonaws.com',
         SourceArn = self.aws_config.topic_rule_arn
       )
-    except Exception as e:
-      error_code = e.response["Error"]["Code"]
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
       if error_code == 'ResourceConflictException':
         print('Lambda trigger already exists...skipping lambda trigger creation...')
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
