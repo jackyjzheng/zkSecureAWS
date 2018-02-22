@@ -3,8 +3,7 @@ import boto3
 import os
 import subprocess
 from implementation.functions import *
-from implementation.aws_lambda_setup import AWS_Lambda_Setup
-from implementation.aws_database_setup import AWS_DB_Setup
+from implementation.aws_setup import AWS_Setup
 
 '''pip install boto3'''
 '''pip install OpenSSL'''
@@ -42,10 +41,6 @@ device_register_response = AWS_Manager.register_device_cert_AWS()
 #Attach policy to this certificate allowing it to publish data
 AWS_Manager.create_initial_policy(targetARN=device_register_response['certificateArn'])
 
-# Create the DynamoDB Table
-dbSetup = AWS_DB_Setup()
-dbSetup.createTable('IoT')
-
-# Create the lambda function and set up the trigger for AWS IoT -> DynamoDB
-lambdaSetup = AWS_Lambda_Setup()
-lambdaSetup.defaultLambdaSetup()
+# Create the dynamo table, lambda function, and trigger
+awsSetup = AWS_Setup()
+awsSetup.defaultSetup()

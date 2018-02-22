@@ -6,13 +6,14 @@ from os.path import basename
 from aws_config_manager import AWS_Config_Manager
 from botocore.exceptions import ClientError
 
-class AWS_Lambda_Setup:
+class AWS_Setup:
 
   def __init__(self):
     self.aws_config = AWS_Config_Manager()
     self.cur_dir = os.path.dirname(__file__)
 
-  def defaultLambdaSetup(self):
+  def defaultSetup(self):
+    self.createTable('IoT')
     if self.createRole('zymkey_role', 'trust_document.txt') == -1:
       return -1
     if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt') == -1:
@@ -23,6 +24,46 @@ class AWS_Lambda_Setup:
     self.createTopicRule('publish_to_dynamo', 'Zymkey')
     self.createLambdaTrigger('1234567890')
     print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
+
+
+  def createTable(self, tableName):
+    print('---Creating DynamoDB table...this may take up to 20 seconds---')
+    try:
+      dynamodb = boto3.resource('dynamodb')
+      table = dynamodb.create_table(
+        TableName = tableName,
+        KeySchema = [
+          {
+              'AttributeName': 'deviceId',
+              'KeyType': 'HASH'  #Partition key
+          },
+          {
+              'AttributeName': 'timestamp',
+              'KeyType': 'RANGE'  #Sort key
+          }
+        ],
+        AttributeDefinitions = [
+          {
+              'AttributeName': 'deviceId',
+              'AttributeType': 'S'
+          },
+          {
+              'AttributeName': 'timestamp',
+              'AttributeType': 'S'
+          }
+        ],
+        ProvisionedThroughput = {
+            'ReadCapacityUnits': 10,
+            'WriteCapacityUnits': 10
+        }
+      )
+      table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
+    except ClientError as e:
+      error_code = e.response["Error"]["Code"]
+      if error_code == "ResourceInUseException":
+        print('Table already exists...skipping table creation and updating table name in /.aws/zymkeyconfig...')
+    finally:
+      self.aws_config.setTable(tableName)
 
   # roleName is the name of the role to be created
   # trustFile located under the policies folder in the repo (ie. trust_document.txt)
@@ -90,7 +131,7 @@ class AWS_Lambda_Setup:
       if error_code == 'EntityAlreadyExists':
         print('Policy already exists...skipping policy creation...using the policy_arn from ~/.aws/zymkeyconfig')
         if self.aws_config.policy_arn is '':
-          print('Cannot get the existing policy_arn from ~/.aws/zymkeyconfig... Check ~/.aws/zymkeyconfig')
+          print('Cannot get the existing policy_arn from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
           print('FAILURE...exiting script...')
           return -1 # Policy exists in AWS, but not specified in the zymkeyconfig
         else:
