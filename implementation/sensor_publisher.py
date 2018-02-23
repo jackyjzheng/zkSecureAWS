@@ -28,27 +28,29 @@ def internet_on():
 
 # This thread would check for any data failed to publish from the failQ queue and write it to a log file
 def checkFailQueue():
+  global internetOn
   while True:
     mutex.acquire()
-    if failQ.qsize() > 100:
+    if failQ.qsize() > 100 or (internetOn and (failQ.qsize() is not 0)):
       print('queue reached ' + str(failQ.qsize()))
       rw.acquire()
       with open(log_path, "a") as myfile:
         num = 0
-        while num < 10:
+        while failQ.qsize() > 0:
           data = failQ.get()
           myfile.write('---NEW ITEM---\n' + str(data) + '\n')
           num += 1
         print('wrote ' + str(num) + ' items from queue')
-      rw.release()
+      rw.release() 
     mutex.release()
 
 # This thread will check the log file for any failed events and retry sending them 
 
 def retrySend():
+  global internetOn
   while True:
     rw.acquire()
-    if internet_on():
+    if internetOn:
       if not os.stat(log_path).st_size == 0:
         with open(log_path) as f:
           content = f.readlines() # Read the lines from file
@@ -64,7 +66,7 @@ retryThread = Thread(target = retrySend)
 failThread.daemon = True
 retryThread.daemon = True
 
-
+internetOn = internet_on()
 failThread.start()
 retryThread.start()
 
@@ -72,12 +74,17 @@ count = 0
 try:
   while True:
     if not internet_on():
+      internetOn = False
       mutex.acquire()
       print('Adding ' + str(calendar.timegm(time.gmtime())) + ' to queue from main loop')
       failQ.put(count)
       count += 1
       mutex.release()
-      time.sleep(.05)
+      time.sleep(.02)
+    else:
+      internetOn = True
+      print('Real time ' + str(calendar.timegm(time.gmtime())) + ' to queue from main loop')
+      print('Leftover q ' + str(failQ.qsize()))
 except KeyboardInterrupt:
   print('Exiting...')
   sys.exit()
