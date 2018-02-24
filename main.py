@@ -1,6 +1,7 @@
-#import OpenSSL
+import OpenSSL
 import boto3
 import os
+import json
 import subprocess
 from implementation.functions import *
 from implementation.aws_setup import AWS_Setup
@@ -36,11 +37,20 @@ with open("verify.csr", 'w') as f:
     f.write(Verification_Pem)
 Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="verify.csr", crt_name="verify.crt")
 print(AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt"))
+
+awsSetup = AWS_Setup()
+awsSetup.modifyLambdaSetup()
+awsSetup.defaultSetup()
+
 #Registering Zymkey device certificate with AWS IoT
 device_register_response = AWS_Manager.register_device_cert_AWS()
+publish_cert_id = boto3.client('iot-data')
+publish_cert_id.publish(
+	topic='certID',
+	qos=1,
+	payload=json.dumps(device_register_response)
+)
+
 #Attach policy to this certificate allowing it to publish data
 AWS_Manager.create_initial_policy(targetARN=device_register_response['certificateArn'])
 
-# Create the dynamo table, lambda function, and trigger
-awsSetup = AWS_Setup()
-awsSetup.defaultSetup()

@@ -19,12 +19,23 @@ class AWS_Setup:
     if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt') == -1:
       return -1
     self.attachRolePolicy()
-    if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler') == -1:
+    if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler', 'python') == -1:
       return -1
     self.createTopicRule('publish_to_dynamo', 'Zymkey')
     self.createLambdaTrigger('1234567890')
     print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
 
+  def modifyLambdaSetup(self):
+  	if self.createRole('lambdaModifyRole', 'trust_document.txt') == -1: 
+  		return -1
+  	if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt') == -1:
+  		return -1                          
+  	self.attachRolePolicy()
+  	if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs') == -1:
+  		return -1
+  	self.createTopicRule('getPubKeyfromCert', 'certID')
+  	self.createLambdaTrigger('1337')
+  	print('Succesful for the modifyLambda function.')
 
   def createTable(self, tableName):
     print('---Creating DynamoDB table...this may take up to 20 seconds---')
@@ -153,7 +164,7 @@ class AWS_Setup:
   # lambdaFileName is the name of the lambda function code with extension (ie. iot_to_dynamo.py)
   # lambdaFunctionHandler is name of function to be ran inside the file, lambdaFileName (ie. lambda_handler)
   # returns -1 for error
-  def createLambdaFunction(self, functionName, lambdaFileName, lambdaFunctionHandler):
+  def createLambdaFunction(self, functionName, lambdaFileName, lambdaFunctionHandler, codeLanguage):
     print('---Creating lambda function---')
     # Download the zip file with the lambda code and save it in the same directory as this script.
     fileNoPy = lambdaFileName.replace(' ', '')[:-3] # Remove the .py extension from the file
@@ -165,11 +176,16 @@ class AWS_Setup:
       return -1
 
     fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy) # Where we will create the zip of the lamdba source code
-    zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
-
+    
+    if not os.path.isfile(fileNoPyPath + '.zip'):
+    	zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
 
     with open(fileNoPyPath + '.zip', mode='rb') as file:   
       filecontent = file.read()
+
+    lambda_runtime = 'python2.7'
+    if codeLanguage is not 'python':
+    	lambda_runtime = 'nodejs6.10'
 
     create_lambda_response = {}
     while True:
@@ -177,7 +193,7 @@ class AWS_Setup:
         lambda_client = boto3.client('lambda')
         create_lambda_response = lambda_client.create_function(
           FunctionName = functionName,
-          Runtime = 'python2.7',
+          Runtime = lambda_runtime,
           Role = self.aws_config.role_arn,
           Handler = fileNoPy + '.' + lambdaFunctionHandler,
           Code = {
