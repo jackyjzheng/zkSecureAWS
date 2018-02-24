@@ -1,9 +1,8 @@
 from Queue import Queue
-from threading import Thread, Lock, Semaphore
+from threading import Thread, Semaphore
 import sys
 import os
-import time # For Testing with "putting data in queue"
-import calendar
+import time
 import urllib2
 
 import json
@@ -17,8 +16,8 @@ import datetime
 import zymkey
 
 failQ = Queue()
-mutex = Semaphore()
-rw = Semaphore()
+qSem = Semaphore()
+rwSem = Semaphore()
 
 cur_dir = os.path.dirname(os.path.realpath(__file__))
 log_path = os.path.join(cur_dir, 'log.txt')
@@ -48,7 +47,7 @@ def ZK_AWS_Publish(url, post_field, CA_Path, Cert_Path,):
   c.setopt(c.SSL_VERIFYHOST, 2)
   
   #Turn on Verbose output and set key as placeholder, not actually a real file.
-  c.setopt(c.VERBOSE, 1)
+  c.setopt(c.VERBOSE, 0)
   c.setopt(c.SSLKEYTYPE, "ENG") 
   c.setopt(c.SSLKEY, "nonzymkey.key")
   c.setopt(c.TIMEOUT, 5)
@@ -72,10 +71,10 @@ def internet_on():
 def checkFailQueue():
   global internetOn
   while True:
-    mutex.acquire()
+    qSem.acquire()
     if failQ.qsize() > 100 or (internetOn and (failQ.qsize() is not 0)):
       print('queue reached ' + str(failQ.qsize()))
-      rw.acquire()
+      rwSem.acquire()
       with open(log_path, "a") as myfile:
         num = 0
         while failQ.qsize() > 0:
@@ -83,24 +82,46 @@ def checkFailQueue():
           myfile.write('---NEW ITEM---\n' + str(data) + '\n')
           num += 1
         print('wrote ' + str(num) + ' items from queue')
-      rw.release() 
-    mutex.release()
+      rwSem.release() 
+    qSem.release()
 
 # This thread will check the log file for any failed events and retry sending them 
-
 def retrySend():
   global internetOn
   while True:
-    rw.acquire()
-    if internetOn:
-      if not os.stat(log_path).st_size == 0:
+    rwSem.acquire()
+    if internetOn: # Connection is alive
+      if not os.stat(log_path).st_size == 0: # There is data that needs to reupload
+        numPublish = 1
         with open(log_path) as f:
-          content = f.readlines() # Read the lines from file
-          print('RETRYING ' + str(content)) # Do something with the lines of text
-          f = open(log_path, 'w+') # Create a new blank log.txt for new logging
-          f.close() 
-    rw.release()
-    time.sleep(3)
+          next(f) # Skip the first ---NEW ITEM--- tag
+          dataBuilder = ''
+          json_data = ''
+          for line in f:
+            if '---NEW ITEM---' not in line:
+              dataBuilder += line
+            else:
+              json_data = json.dumps(dataBuilder)
+              print('RETRY ITEM ' + str(numPublish) + ' HAS BEEN BUILT AND CONTAINS ' + str(json_data))
+              if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is not -1:
+                print('\tRETRY PUBLISH item ' + str(numPublish) + ' from retry')
+              else:
+                print('Couldnt publish ' + str(numPublish) + ' added to queue')
+                failQ.put(json_data)
+              numPublish += 1
+              dataBuilder = '' # Reset the dataBuilder to empty string
+          # Print out the very last item in the file
+          json_data = json.dumps(dataBuilder)
+          print('RETRY ITEM ' + str(numPublish) + ' HAS BEEN BUILT AND CONTAINS ' + str(json_data))
+          if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is not -1:
+            print('\tLAST RETRY PUBLISH item ' + str(numPublish) + ' from retry')
+          else:
+            print('Couldnt publish ' + str(numPublish) + ' added to queue')
+            failQ.put(json_data)
+        f = open(log_path, 'w+') # Create a new blank log.txt for new logging
+        f.close()
+    rwSem.release()
+    time.sleep(3) # Retrying the publish isn't too essential to do in quick time
 
 failThread = Thread(target = checkFailQueue)
 retryThread = Thread(target = retrySend)
@@ -112,18 +133,16 @@ internetOn = internet_on()
 failThread.start()
 retryThread.start()
 
-count = 0
-
-## Data generation setup ##
+# Data generation setup
 boto3client = boto3.client('iot')
 topic = "Zymkey"
 AWS_ENDPOINT = "https://" + str(boto3client.describe_endpoint()['endpointAddress']) + ":8443/topics/" + topic + "?qos=1"    
 device_id = "1"
 ip = "192.168.12.28"
-###########################
 
 try:
   while True:
+    # Generate the sample data to try to send
     timestamp = datetime.datetime.now()
     temp_data = {"tempF": random.randint(70,100), "tempC" : random.randint(35, 50)}
     encrypted_data = zymkey.client.lock(bytearray(json.dumps(temp_data)))
@@ -131,21 +150,18 @@ try:
     data = {"ip": ip, "signature": binascii.hexlify(signature), "encryptedData": binascii.hexlify(encrypted_data), "tempData": temp_data}
     post_field = {"deviceId": device_id, "timestamp": str(timestamp), "data": data}
     json_data = json.dumps(post_field)
+
     if not internet_on():
       internetOn = False
-      mutex.acquire()
-      print('Adding ' + str(calendar.timegm(time.gmtime())) + ' to queue from main loop')
+      qSem.acquire()
+      print('No connection detected...putting the data into offline storage')
       failQ.put(json_data)
-      count += 1
-      mutex.release()
-      time.sleep(.02)
+      qSem.release()
     else:
       internetOn = True
-
       if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is -1:
         failQ.put(json_data)
-      print('Real time ' + str(calendar.timegm(time.gmtime())) + ' to queue from main loop')
-      print('Leftover q ' + str(failQ.qsize()))
+      print('\tREGULAR PUBLISH: Leftover q size ' + str(failQ.qsize()))
 except KeyboardInterrupt:
   print('Exiting...')
   sys.exit()
