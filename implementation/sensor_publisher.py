@@ -25,6 +25,13 @@ if not os.path.isfile(log_path):
   f = open(log_path,"w+")
   f.close()
 
+# Data generation setup
+boto3client = boto3.client('iot')
+topic = "Zymkey"
+AWS_ENDPOINT = "https://" + str(boto3client.describe_endpoint()['endpointAddress']) + ":8443/topics/" + topic + "?qos=1"    
+device_id = "1"
+ip = "192.168.12.28"
+
 def ZK_AWS_Publish(url, post_field, CA_Path, Cert_Path,):
   #Setting Curl to use zymkey_ssl engine
   c = pycurl.Curl()
@@ -73,15 +80,15 @@ def checkFailQueue():
   while True:
     qSem.acquire()
     if failQ.qsize() > 100 or (internetOn and (failQ.qsize() is not 0)):
-      print('queue reached ' + str(failQ.qsize()))
+      print('Queue has reached size ' + str(failQ.qsize()))
       rwSem.acquire()
       with open(log_path, "a") as myfile:
         num = 0
         while failQ.qsize() > 0:
           data = failQ.get()
-          myfile.write('---NEW ITEM---\n' + str(data) + '\n')
+          myfile.write('---NEW ITEM---\n' + data + '\n')
           num += 1
-        print('wrote ' + str(num) + ' items from queue')
+        print('Wrote ' + str(num) + ' items from queue to log')
       rwSem.release() 
     qSem.release()
 
@@ -98,30 +105,31 @@ def retrySend():
           dataBuilder = ''
           json_data = ''
           for line in f:
+            line.rstrip()
             if '---NEW ITEM---' not in line:
               dataBuilder += line
             else:
-              json_data = json.dumps(dataBuilder)
-              print('RETRY ITEM ' + str(numPublish) + ' HAS BEEN BUILT AND CONTAINS ' + str(json_data))
+              json_data = dataBuilder
+              print('RETRY ITEM ' + str(numPublish) + ': ' + json_data)
               if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is not -1:
-                print('\tRETRY PUBLISH item ' + str(numPublish) + ' from retry')
+                print('\tRETRY PUBLISH item ' + str(numPublish) + ' from retry\n')
               else:
                 print('Couldnt publish ' + str(numPublish) + ' added to queue')
                 failQ.put(json_data)
               numPublish += 1
               dataBuilder = '' # Reset the dataBuilder to empty string
           # Print out the very last item in the file
-          json_data = json.dumps(dataBuilder)
-          print('RETRY ITEM ' + str(numPublish) + ' HAS BEEN BUILT AND CONTAINS ' + str(json_data))
+          json_data = dataBuilder
+          print('RETRY ITEM ' + str(numPublish) + ': ' + json_data)
           if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is not -1:
-            print('\tLAST RETRY PUBLISH item ' + str(numPublish) + ' from retry')
+            print('\tRETRY PUBLISH item ' + str(numPublish) + ' from retry\n')
           else:
             print('Couldnt publish ' + str(numPublish) + ' added to queue')
             failQ.put(json_data)
         f = open(log_path, 'w+') # Create a new blank log.txt for new logging
         f.close()
     rwSem.release()
-    time.sleep(3) # Retrying the publish isn't too essential to do in quick time
+    time.sleep(3) # Retrying the publish because isn't too essential to do in quick time
 
 failThread = Thread(target = checkFailQueue)
 retryThread = Thread(target = retrySend)
@@ -133,12 +141,6 @@ internetOn = internet_on()
 failThread.start()
 retryThread.start()
 
-# Data generation setup
-boto3client = boto3.client('iot')
-topic = "Zymkey"
-AWS_ENDPOINT = "https://" + str(boto3client.describe_endpoint()['endpointAddress']) + ":8443/topics/" + topic + "?qos=1"    
-device_id = "1"
-ip = "192.168.12.28"
 
 try:
   while True:
@@ -159,9 +161,10 @@ try:
       qSem.release()
     else:
       internetOn = True
+      print('REGULAR PUBLISH item: ' + json_data)
       if ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Zymkey-AWS-Kit/zymkey.crt') is -1:
         failQ.put(json_data)
-      print('\tREGULAR PUBLISH: Leftover q size ' + str(failQ.qsize()))
+      print('\tREGULAR PUBLISH: Fail queue size: ' + str(failQ.qsize()) + '\n')
 except KeyboardInterrupt:
   print('Exiting...')
   sys.exit()
