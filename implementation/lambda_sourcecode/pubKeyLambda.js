@@ -8,7 +8,7 @@ const AWS = require('aws-sdk');
 *	Public Key is then added to the Signature Verification Lambda function as an environment variable.
 */
 
-exports.handler = function(event, context, callback) {
+exports.lambda_handler = function(event, context, callback) {
 	// Grabbing Certificate in PEM format. Certificate is grabbed by certificateId, which is passed from AWS IoT rule upon certificate registration.
 	var region = 'us-west-2';
 	var iot = new AWS.Iot({'region': region, apiVersion: '2015-05-28'});
@@ -27,9 +27,9 @@ exports.handler = function(event, context, callback) {
 			var X509 = new jsrsasign.X509();
 			X509.readCertPEM(zk_cert);
 			var pub_key_hex = X509.getPublicKeyHex(zk_cert);
-			var pub_key_pem = '-----BEGIN PUBLIC KEY-----\n' +
-			Buffer.from(pub_key_hex, 'hex').toString('base64') + '\n' + 
-			'-----END PUBLIC KEY-----\n';
+			//var pub_key_pem = '-----BEGIN PUBLIC KEY-----\n' +
+			var pub_key_pem = Buffer.from(pub_key_hex, 'hex').toString('base64') + '\n';
+			//'-----END PUBLIC KEY-----\n';
 			
 			// Public key PEM inserted into Environment Variables of Sig. Ver. lambda.
 			var lambda = new AWS.Lambda();
@@ -40,7 +40,15 @@ exports.handler = function(event, context, callback) {
 				if (err) console.log(err, err.stack);
 				else {	
 					var new_environment = data['Configuration']['Environment'];
-					new_environment['Variables']['new_pub_key'] = pub_key_pem;
+					if (new_environment == undefined)
+					{
+						new_environment = {};
+						new_environment['Configuration'] = {};
+						new_environment['Configuration']['Environment'] = {};
+						new_environment['Configuration']['Environment']['Variables'] = {};
+						new_environment = new_environment['Configuration']['Environment'];
+					}
+					new_environment['Variables']['new_pub_key'] = pub_key_hex;
 					params = {
 						FunctionName: "iot_to_dynamo",
 						Environment: new_environment
