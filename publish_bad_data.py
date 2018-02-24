@@ -50,7 +50,7 @@ if __name__ == "__main__":
         timestamp = datetime.datetime.now()
         temp_data = {"tempF": random.randint(70,100), "tempC" : random.randint(35, 50)}
         encrypted_data = zymkey.client.lock(bytearray(json.dumps(temp_data)))
-        signature = zymkey.client.sign(encrypted_data)
+        signature = zymkey.client.sign("yo wassup")
         data = {"ip": ip, "signature": binascii.hexlify(signature), "encryptedData": binascii.hexlify(encrypted_data), "tempData": temp_data}
         post_field = {"deviceId": device_id, "timestamp": str(timestamp), "data": data}
         json_data = json.dumps(post_field)

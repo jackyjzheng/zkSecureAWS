@@ -96,7 +96,7 @@ class AWS_Cert_Manager(object):
         	return boto3client.register_certificate(
 			certificatePem=self.device_cert,
 			caCertificatePem=self.ca_cert,
-			setAsActive=True,
+			status="ACTIVE"
 		)
     def create_initial_policy(self, targetARN):
 		'''

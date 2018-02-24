@@ -33,9 +33,9 @@ class AWS_Setup:
   	self.attachRolePolicy()
   	if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs') == -1:
   		return -1
-  	self.createTopicRule('getPubKeyfromCert', '$aws/events/certificates/registered/')
+  	self.createTopicRule('getPubKeyfromCert', 'certID')
   	self.createLambdaTrigger('1337')
-  	print('Succesful setup ya bitch.')
+  	print('Succesful for the modifyLambda function.')
 
   def createTable(self, tableName):
     print('---Creating DynamoDB table...this may take up to 20 seconds---')
