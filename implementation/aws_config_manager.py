@@ -23,6 +23,10 @@ class AWS_Config_Manager:
     self.db_lambda_arn = ''
     self.db_topic_rule_arn = ''
 
+    self.iot_cert = ''
+    self.iot_policy = ''
+    self.iot_ca = ''
+
     self.table_name = ''
     self.subscribed_topic = ''
 
@@ -45,6 +49,11 @@ class AWS_Config_Manager:
       self.db_lambda_arn = self.config.get(AWS_Config_Manager.SECTION_NAME, 'db_lambda_arn')
       self.db_topic_rule_arn = self.config.get(AWS_Config_Manager.SECTION_NAME, 'db_topic_rule_arn')
 
+      self.iot_cert = self.config.get(AWS_Config_Manager.SECTION_NAME, 'iot_cert')
+      self.iot_policy = self.config.get(AWS_Config_Manager.SECTION_NAME, 'iot_policy')
+      self.iot_ca = self.config.get(AWS_Config_Manager.SECTION_NAME, 'iot_ca')
+
+
       self.table_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'table_name')
       self.subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic')
     else:
@@ -61,6 +70,10 @@ class AWS_Config_Manager:
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_policy_arn', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_lambda_arn', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_topic_rule_arn', '')
+
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_cert', '')
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_policy', '')
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_ca', '')
 
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic', '')
@@ -114,6 +127,19 @@ class AWS_Config_Manager:
     elif context == 'db':
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_topic_rule_arn', topicRuleArn)
       self.db_topic_rule_arn = topicRuleArn
+    self.saveConfig()
+
+  def setIotCert(self, cert):
+    self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_cert', cert)
+    self.iot_cert = cert
+    self.saveConfig()
+  def setIotPolicy(self, policy):
+    self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_policy', policy)
+    self.iot_policy = policy
+    self.saveConfig()
+  def setIotCA(self, CA):
+    self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_ca', CA)
+    self.iot_ca = CA
     self.saveConfig()
 
   def setTable(self, tableName):
