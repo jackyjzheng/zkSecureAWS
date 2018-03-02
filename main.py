@@ -39,8 +39,8 @@ Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="verify.csr", crt_name="
 print(AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt"))
 
 awsSetup = AWS_Setup()
-awsSetup.modifyLambdaSetup()
-awsSetup.defaultSetup()
+awsSetup.sigSetup()
+awsSetup.dbSetup()
 
 #Registering Zymkey device certificate with AWS IoT
 device_register_response = AWS_Manager.register_device_cert_AWS()
