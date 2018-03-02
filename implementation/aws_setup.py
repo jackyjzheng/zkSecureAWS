@@ -2,6 +2,7 @@ import zipfile
 import boto3
 import os
 import time
+import sys
 from os.path import basename
 from aws_config_manager import AWS_Config_Manager
 from botocore.exceptions import ClientError
@@ -16,12 +17,12 @@ class AWS_Setup:
     context = 'db'
     self.createTable('IoT')
     if self.createRole('zymkey_role', 'trust_document.txt', context) == -1:
-      return -1
+      sys.exit()
     if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt', context) == -1:
-      return -1
+      sys.exit()
     self.attachRolePolicy(context)
     if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler', 'python', context) == -1:
-      return -1
+      sys.exit()
     self.createTopicRule('publish_to_dynamo', 'Zymkey', context)
     self.createLambdaTrigger('1234567890', context)
     print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
@@ -29,12 +30,12 @@ class AWS_Setup:
   def sigSetup(self):
     context = 'sig'
     if self.createRole('lambdaModifyRole', 'trust_document.txt', context) == -1: 
-      return -1
+      sys.exit()
     if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt', context) == -1:
-      return -1                          
+      sys.exit()                       
     self.attachRolePolicy(context)
     if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs', context) == -1:
-      return -1
+      sys.exit()
     self.createTopicRule('getPubKeyfromCert', 'certID', context)
     self.createLambdaTrigger('1337', context)
     print('Succesful for the modifyLambda function.')
