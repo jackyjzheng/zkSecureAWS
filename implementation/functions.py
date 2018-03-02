@@ -84,6 +84,7 @@ class AWS_Cert_Manager(object):
       setAsActive=True,
       allowAutoRegistration=True
     )
+    self.aws_config.setIotCA(response['certificateArn'])
     return response
   
   def register_device_cert_AWS(self):
@@ -100,6 +101,7 @@ class AWS_Cert_Manager(object):
       caCertificatePem=self.ca_cert,
       status="ACTIVE"
     )
+    self.aws_config.setIotCert(response['certificateArn'])
     return response
 
   def create_initial_policy(self, targetARN):
@@ -118,4 +120,5 @@ class AWS_Cert_Manager(object):
       policyName='IoTPublishPolicy',
       target=targetARN
     )
+    self.aws_config.setIotPolicy(response['policyArn'])
     return attachResponse       
