@@ -283,7 +283,7 @@ class AWS_Setup:
       ruleName = topicRuleName
     )
     self.aws_config.setTopicRule(create_topic_rule_response['ruleArn'], context)
-    self.aws_config.setSubscribedTopic(subscribedTopic, context)
+    self.aws_config.setSubscribedTopic(subscribedTopic)
 
   # statementId is an arbitrary identifier for the trigger
   def createLambdaTrigger(self, statementId, context):
