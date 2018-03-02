@@ -28,16 +28,16 @@ class AWS_Setup:
 
   def sigSetup(self):
     context = 'sig'
-  	if self.createRole('lambdaModifyRole', 'trust_document.txt', context) == -1: 
-  		return -1
-  	if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt', context) == -1:
-  		return -1                          
-  	self.attachRolePolicy(context)
-  	if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs', context) == -1:
-  		return -1
-  	self.createTopicRule('getPubKeyfromCert', 'certID', context)
-  	self.createLambdaTrigger('1337', context)
-  	print('Succesful for the modifyLambda function.')
+    if self.createRole('lambdaModifyRole', 'trust_document.txt', context) == -1: 
+      return -1
+    if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt', context) == -1:
+      return -1                          
+    self.attachRolePolicy(context)
+    if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs', context) == -1:
+      return -1
+    self.createTopicRule('getPubKeyfromCert', 'certID', context)
+    self.createLambdaTrigger('1337', context)
+    print('Succesful for the modifyLambda function.')
 
   def createTable(self, tableName):
     print('---Creating DynamoDB table...this may take up to 20 seconds---')
@@ -189,7 +189,7 @@ class AWS_Setup:
     fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy) # Where we will create the zip of the lamdba source code
     
     if not os.path.isfile(fileNoPyPath + '.zip'):
-    	zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
+      zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
 
     with open(fileNoPyPath + '.zip', mode='rb') as file:   
       filecontent = file.read()
@@ -199,7 +199,7 @@ class AWS_Setup:
     role = ''
 
     if codeLanguage == 'python':
-    	lambda_runtime = 'python2.7'
+      lambda_runtime = 'python2.7'
     elif codeLanguage == 'nodejs':
       lambda_runtime = 'nodejs6.10'
     if context == 'sig':
