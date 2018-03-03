@@ -28,7 +28,8 @@ class AWS_Config_Manager:
     self.iot_ca = ''
 
     self.table_name = ''
-    self.subscribed_topic = ''
+    self.sig_subscribed_topic = ''
+    self.db_subscribed_topic = ''
 
     self.initializeConfig()
 
@@ -55,7 +56,8 @@ class AWS_Config_Manager:
 
 
       self.table_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'table_name')
-      self.subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic')
+      self.sig_subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'sig_subscribed_topic')
+      self.db_subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'db_subscribed_topic')
     else:
       # If file doesn't exist, set the variables of the config object to empty
       self.config.add_section(AWS_Config_Manager.SECTION_NAME)
@@ -76,7 +78,8 @@ class AWS_Config_Manager:
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_ca', '')
 
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', '')
-      self.config.set(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic', '')
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'sig_subscribed_topic', '')
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_subscribed_topic', '')
       self.saveConfig()
 
   # Writes the config object in the class to a config file
@@ -147,7 +150,11 @@ class AWS_Config_Manager:
     self.table_name = tableName
     self.saveConfig()
 
-  def setSubscribedTopic(self, subscribedTopic):
-    self.config.set(AWS_Config_Manager.SECTION_NAME, 'subscribed_topic', subscribedTopic)
-    self.subscribed_topic = subscribedTopic
+  def setSubscribedTopic(self, subscribedTopic, context):
+    if context == 'sig':
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'sig_subscribed_topic', subscribedTopic)
+      self.sig_subscribed_topic = subscribedTopic
+    if context == 'db':
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_subscribed_topic', subscribedTopic)
+      self.db_subscribed_topic = subscribedTopic
     self.saveConfig()

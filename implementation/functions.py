@@ -90,7 +90,7 @@ class AWS_Cert_Manager(object):
       return response
     except ClientError as e:
       error_code = e.response['Error']['Code']
-      if error_code == 'EntityAlreadyExists':
+      if error_code == 'ResourceAlreadyExists':
         print('CA already exists...skipping CA creation and updating CA arn in ~/.aws/zymkeyconfig...')
         if self.aws_config.iot_ca == '':
           print('Cannot get the existing CA from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
@@ -124,17 +124,34 @@ class AWS_Cert_Manager(object):
     '''
     Creates a policy for your device to connect and publish data to AWS IoT
     '''
+    policyName = 'IoTPublishPolicy'
     client = boto3.client('iot')
     with open("implementation/policies/iot_policy.txt") as policy_json:
       policy = policy_json.read()
-    response = client.create_policy(
-      policyName='IoTPublishPolicy',
-      policyDocument=policy
-    
-    )
-    attachResponse = client.attach_policy(
-      policyName='IoTPublishPolicy',
-      target=targetARN
-    )
-    self.aws_config.setIotPolicy(response['policyArn'])
-    return attachResponse       
+    try:
+      response = client.create_policy(
+        policyName=policyName,
+        policyDocument=policy
+      
+      )
+      attachResponse = client.attach_policy(
+        policyName=policyName,
+        target=targetARN
+      )
+      self.aws_config.setIotPolicy(response['policyArn'])
+      return attachResponse
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
+      if error_code == 'ResourceAlreadyExists':
+        print('IoT policy already exists...skipping IoT policy creation and updating policy name in ~/.aws/zymkeyconfig...')
+        getResponse = client.get_policy(policyName = policyName)
+        self.aws_config.setIotPolicy(getResponse['policyArn'])
+        return client.attach_policy(
+          policyName = policyName,
+          target = targetARN
+        )
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
+
