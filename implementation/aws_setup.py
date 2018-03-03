@@ -2,6 +2,7 @@ import zipfile
 import boto3
 import os
 import time
+import sys
 from os.path import basename
 from aws_config_manager import AWS_Config_Manager
 from botocore.exceptions import ClientError
@@ -12,30 +13,32 @@ class AWS_Setup:
     self.aws_config = AWS_Config_Manager()
     self.cur_dir = os.path.dirname(__file__)
 
-  def defaultSetup(self):
+  def dbSetup(self):
+    context = 'db'
     self.createTable('IoT')
-    if self.createRole('zymkey_role', 'trust_document.txt') == -1:
-      return -1
-    if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt') == -1:
-      return -1
-    self.attachRolePolicy()
-    if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler', 'python') == -1:
-      return -1
-    self.createTopicRule('publish_to_dynamo', 'Zymkey')
-    self.createLambdaTrigger('1234567890')
+    if self.createRole('zymkey_role', 'trust_document.txt', context) == -1:
+      sys.exit()
+    if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt', context) == -1:
+      sys.exit()
+    self.attachRolePolicy(context)
+    if self.createLambdaFunction('iot_to_dynamo', 'iot_to_dynamo.py', 'lambda_handler', 'python', context) == -1:
+      sys.exit()
+    self.createTopicRule('publish_to_dynamo', 'Zymkey', context)
+    self.createLambdaTrigger('1234567890', context)
     print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
 
-  def modifyLambdaSetup(self):
-  	if self.createRole('lambdaModifyRole', 'trust_document.txt') == -1: 
-  		return -1
-  	if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt') == -1:
-  		return -1                          
-  	self.attachRolePolicy()
-  	if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs') == -1:
-  		return -1
-  	self.createTopicRule('getPubKeyfromCert', 'certID')
-  	self.createLambdaTrigger('1337')
-  	print('Succesful for the modifyLambda function.')
+  def sigSetup(self):
+    context = 'sig'
+    if self.createRole('lambdaModifyRole', 'trust_document.txt', context) == -1: 
+      sys.exit()
+    if self.createPolicy('lambdaModifyPolicy', 'lambdaModifyPolicy.txt', context) == -1:
+      sys.exit()                       
+    self.attachRolePolicy(context)
+    if self.createLambdaFunction('setPublicKey', 'pubKeyLambda.js', 'lambda_handler', 'nodejs', context) == -1:
+      sys.exit()
+    self.createTopicRule('getPubKeyfromCert', 'certID', context)
+    self.createLambdaTrigger('1337', context)
+    print('Succesful for the modifyLambda function.')
 
   def createTable(self, tableName):
     print('---Creating DynamoDB table...this may take up to 20 seconds---')
@@ -79,7 +82,7 @@ class AWS_Setup:
   # roleName is the name of the role to be created
   # trustFile located under the policies folder in the repo (ie. trust_document.txt)
   # returns -1 for error
-  def createRole(self, roleName, trustFile):
+  def createRole(self, roleName, trustFile, context):
     print('---Creating role---')
     trustFilePath = os.path.join(self.cur_dir, 'policies', trustFile)
     if not os.path.isfile(trustFilePath):
@@ -110,13 +113,13 @@ class AWS_Setup:
     except Exception as e:
       print(e)
     finally:
-      self.aws_config.setRole(create_role_response['Role']['Arn'])
-      self.aws_config.setRoleName(roleName)
+      self.aws_config.setRole(create_role_response['Role']['Arn'], context)
+      self.aws_config.setRoleName(roleName, context)
 
   # policyName is the name of the policy to be created
   # policyFile located under the policies folder in the repo (ie. lambda_dynamo_policy.txt)
   # returns -1 for error, 0 for success
-  def createPolicy(self, policyName, policyFile):
+  def createPolicy(self, policyName, policyFile, context):
     print('---Creating policy---')
     policyFilePath = os.path.join(self.cur_dir, 'policies', policyFile)
     if not os.path.isfile(policyFilePath):
@@ -136,12 +139,12 @@ class AWS_Setup:
         PolicyDocument = lambda_document,
         Description = 'Full dynamoDB access rights policy with logs'
       )
-      self.aws_config.setPolicy(create_policy_response['Policy']['Arn'])
+      self.aws_config.setPolicy(create_policy_response['Policy']['Arn'], context)
     except ClientError as e:
       error_code = e.response['Error']['Code']
       if error_code == 'EntityAlreadyExists':
         print('Policy already exists...skipping policy creation...using the policy_arn from ~/.aws/zymkeyconfig')
-        if self.aws_config.policy_arn is '':
+        if self.aws_config.sig_policy_arn is '' or self.aws_config.db_policy_arn is '':
           print('Cannot get the existing policy_arn from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
           print('FAILURE...exiting script...')
           return -1 # Policy exists in AWS, but not specified in the zymkeyconfig
@@ -152,19 +155,28 @@ class AWS_Setup:
     except Exception as e:
       print(e)
 
-  def attachRolePolicy(self):
+  def attachRolePolicy(self, context):
     print('---Attaching the role to the policy---')
     iam_client = boto3.client('iam')
+    roleName = ''
+    policyArn = ''
+    if context == 'sig':
+      roleName = self.aws_config.sig_role_name
+      policyArn = self.aws_config.sig_policy_arn
+    elif context == 'db':
+      roleName = self.aws_config.db_role_name
+      policyArn = self.aws_config.db_policy_arn
+
     attach_response = iam_client.attach_role_policy(
-      RoleName = self.aws_config.role_name,
-      PolicyArn = self.aws_config.policy_arn
+      RoleName = roleName,
+      PolicyArn = policyArn
     )
 
   # functionName is the unique name to call this lambda function on AWS
   # lambdaFileName is the name of the lambda function code with extension (ie. iot_to_dynamo.py)
   # lambdaFunctionHandler is name of function to be ran inside the file, lambdaFileName (ie. lambda_handler)
   # returns -1 for error
-  def createLambdaFunction(self, functionName, lambdaFileName, lambdaFunctionHandler, codeLanguage):
+  def createLambdaFunction(self, functionName, lambdaFileName, lambdaFunctionHandler, codeLanguage, context):
     print('---Creating lambda function---')
     # Download the zip file with the lambda code and save it in the same directory as this script.
     fileNoPy = lambdaFileName.replace(' ', '')[:-3] # Remove the .py extension from the file
@@ -178,23 +190,32 @@ class AWS_Setup:
     fileNoPyPath = os.path.join(lambdaCodeDir, fileNoPy) # Where we will create the zip of the lamdba source code
     
     if not os.path.isfile(fileNoPyPath + '.zip'):
-    	zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
+      zipfile.ZipFile(fileNoPyPath + '.zip', mode='w').write(filePath, basename(filePath))
 
     with open(fileNoPyPath + '.zip', mode='rb') as file:   
       filecontent = file.read()
 
-    lambda_runtime = 'python2.7'
-    if codeLanguage is not 'python':
-    	lambda_runtime = 'nodejs6.10'
-
+    lambda_runtime = ''
     create_lambda_response = {}
+    role = ''
+
+    if codeLanguage == 'python':
+      lambda_runtime = 'python2.7'
+    elif codeLanguage == 'nodejs':
+      lambda_runtime = 'nodejs6.10'
+    if context == 'sig':
+      role = self.aws_config.sig_role_arn
+    elif context == 'db':
+      role = self.aws_config.db_role_arn
+
+
     while True:
       try:
         lambda_client = boto3.client('lambda')
         create_lambda_response = lambda_client.create_function(
           FunctionName = functionName,
           Runtime = lambda_runtime,
-          Role = self.aws_config.role_arn,
+          Role = role,
           Handler = fileNoPy + '.' + lambdaFunctionHandler,
           Code = {
             'ZipFile': filecontent
@@ -220,12 +241,17 @@ class AWS_Setup:
           break
       except Exception as e:
         print(e)
-    self.aws_config.setLambda(create_lambda_response['FunctionArn'])
+    self.aws_config.setLambda(create_lambda_response['FunctionArn'], context)
 
   # topicRuleName is name of topic rule to be created
   # subscribedTopic is name of the IoT topic where data will be published
-  def createTopicRule(self, topicRuleName, subscribedTopic):
+  def createTopicRule(self, topicRuleName, subscribedTopic, context):
     print('---Creating topic rule---')
+    lambdaArn = ''
+    if context == 'sig':
+      lambdaArn = self.aws_config.sig_lambda_arn
+    elif context == 'db':
+      lambdaArn = self.aws_config.db_lambda_arn
     try:
       iot_client = boto3.client('iot')
       iot_client.create_topic_rule(
@@ -236,7 +262,7 @@ class AWS_Setup:
           'actions': [
             {
               'lambda': {
-                'functionArn': self.aws_config.lambda_arn
+                'functionArn': lambdaArn
               }
             }
           ]
@@ -256,20 +282,28 @@ class AWS_Setup:
     create_topic_rule_response = iot_client.get_topic_rule(
       ruleName = topicRuleName
     )
-    self.aws_config.setTopicRule(create_topic_rule_response['ruleArn'])
+    self.aws_config.setTopicRule(create_topic_rule_response['ruleArn'], context)
     self.aws_config.setSubscribedTopic(subscribedTopic)
 
   # statementId is an arbitrary identifier for the trigger
-  def createLambdaTrigger(self, statementId):
+  def createLambdaTrigger(self, statementId, context):
     print('---Creating lambda trigger---')
+    functionName = ''
+    sourceArn = ''
+    if context == 'sig':
+      functionName = self.aws_config.sig_lambda_arn
+      sourceArn = self.aws_config.sig_topic_rule_arn
+    elif context == 'db':
+      functionName = self.aws_config.db_lambda_arn
+      sourceArn = self.aws_config.db_topic_rule_arn
     try:
       lambda_client = boto3.client('lambda')
       add_permission_response = lambda_client.add_permission(
-        FunctionName = self.aws_config.lambda_arn,
+        FunctionName = functionName,
         StatementId = statementId,
         Action = 'lambda:InvokeFunction',
         Principal = 'iot.amazonaws.com',
-        SourceArn = self.aws_config.topic_rule_arn
+        SourceArn = sourceArn
       )
     except ClientError as e:
       error_code = e.response['Error']['Code']
