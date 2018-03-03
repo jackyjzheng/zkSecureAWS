@@ -90,7 +90,7 @@ class AWS_Cert_Manager(object):
       return response
     except ClientError as e:
       error_code = e.response['Error']['Code']
-      if error_code == 'ResourceAlreadyExists':
+      if error_code == 'ResourceAlreadyExistsException':
         print('CA already exists...skipping CA creation and updating CA arn in ~/.aws/zymkeyconfig...')
         if self.aws_config.iot_ca == '':
           print('Cannot get the existing CA from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
@@ -142,7 +142,7 @@ class AWS_Cert_Manager(object):
       return attachResponse
     except ClientError as e:
       error_code = e.response['Error']['Code']
-      if error_code == 'ResourceAlreadyExists':
+      if error_code == 'ResourceAlreadyExistsException':
         print('IoT policy already exists...skipping IoT policy creation and updating policy name in ~/.aws/zymkeyconfig...')
         getResponse = client.get_policy(policyName = policyName)
         self.aws_config.setIotPolicy(getResponse['policyArn'])
