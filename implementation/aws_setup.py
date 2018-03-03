@@ -144,7 +144,7 @@ class AWS_Setup:
       error_code = e.response['Error']['Code']
       if error_code == 'EntityAlreadyExists':
         print('Policy already exists...skipping policy creation...using the policy_arn from ~/.aws/zymkeyconfig')
-        if self.aws_config.sig_policy_arn is '' or self.aws_config.db_policy_arn is '':
+        if self.aws_config.sig_policy_arn == '' or self.aws_config.db_policy_arn == '':
           print('Cannot get the existing policy_arn from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
           print('FAILURE...exiting script...')
           return -1 # Policy exists in AWS, but not specified in the zymkeyconfig

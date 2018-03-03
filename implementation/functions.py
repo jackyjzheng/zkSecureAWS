@@ -3,6 +3,7 @@ import boto3
 import os
 import subprocess
 from aws_config_manager import AWS_Config_Manager
+from botocore.exceptions import ClientError
 
 def read_from_file(file_path):
   '''
@@ -78,14 +79,29 @@ class AWS_Cert_Manager(object):
     client = boto3.client('iot')
     with open(verify_crt_path, 'r') as f:
       verification_cert=f.read()
-    response = client.register_ca_certificate(
-      caCertificate=self.ca_cert,
-      verificationCertificate=verification_cert,
-      setAsActive=True,
-      allowAutoRegistration=True
-    )
-    self.aws_config.setIotCA(response['certificateArn'])
-    return response
+    try:
+      response = client.register_ca_certificate(
+        caCertificate=self.ca_cert,
+        verificationCertificate=verification_cert,
+        setAsActive=True,
+        allowAutoRegistration=True
+      )
+      self.aws_config.setIotCA(response['certificateId'])
+      return response
+    except ClientError as e:
+      error_code = e.response['Error']['Code']
+      if error_code == 'EntityAlreadyExists':
+        print('CA already exists...skipping CA creation and updating CA arn in ~/.aws/zymkeyconfig...')
+        if self.aws_config.iot_ca == '':
+          print('Cannot get the existing CA from ~/.aws/zymkeyconfig... Manually update ~/.aws/zymkeyconfig yourself')
+          print('FAILURE...exiting script...')
+          return -1 # CA exists in AWS, but not specified in the zymkeyconfig
+        else:
+          return 0 # CA exists in AWS, and is correctly specified in zymkeyconfig so we continue
+      else:
+        print(e)
+    except Exception as e:
+      print(e)
   
   def register_device_cert_AWS(self):
     '''

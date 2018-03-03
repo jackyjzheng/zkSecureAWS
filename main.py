@@ -3,6 +3,7 @@ import boto3
 import os
 import json
 import subprocess
+import sys
 from implementation.functions import *
 from implementation.aws_setup import AWS_Setup
 
@@ -36,7 +37,8 @@ Verification_Pem = AWS_Manager.gen_verify_csr()
 with open("verify.csr", 'w') as f:
   f.write(Verification_Pem)
 Zymkey_Manager.sign_csr_with_ca(filePath="./", csr_name="verify.csr", crt_name="verify.crt")
-print(AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt"))
+if AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt") == -1:
+  sys.exit()
 
 awsSetup = AWS_Setup()
 awsSetup.sigSetup()
