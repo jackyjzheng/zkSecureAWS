@@ -25,7 +25,7 @@ class AWS_Setup:
       sys.exit()
     self.createTopicRule('publish_to_dynamo', 'Zymkey', context)
     self.createLambdaTrigger('1234567890', context)
-    print('Successful setup! Publish data to topic \'' + self.aws_config.subscribed_topic + '\' to get started!')
+    print('Successful setup! Publish data to topic \'' + self.aws_config.db_subscribed_topic + '\' to get started!')
 
   def sigSetup(self):
     context = 'sig'
