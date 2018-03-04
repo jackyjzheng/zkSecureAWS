@@ -28,6 +28,7 @@ class AWS_Config_Manager:
     self.iot_ca = ''
 
     self.table_name = ''
+    self.bad_table_name = ''
     self.sig_subscribed_topic = ''
     self.db_subscribed_topic = ''
 
@@ -56,6 +57,7 @@ class AWS_Config_Manager:
 
 
       self.table_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'table_name')
+      self.bad_table_name = self.config.get(AWS_Config_Manager.SECTION_NAME, 'bad_table_name')
       self.sig_subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'sig_subscribed_topic')
       self.db_subscribed_topic = self.config.get(AWS_Config_Manager.SECTION_NAME, 'db_subscribed_topic')
     else:
@@ -77,6 +79,7 @@ class AWS_Config_Manager:
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_policy', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'iot_ca', '')
 
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'bad_table_name', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'sig_subscribed_topic', '')
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_subscribed_topic', '')
@@ -145,9 +148,13 @@ class AWS_Config_Manager:
     self.iot_ca = CA
     self.saveConfig()
 
-  def setTable(self, tableName):
-    self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', tableName)
-    self.table_name = tableName
+  def setTable(self, tableName, context):
+    if context == 'standard':
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'table_name', tableName)
+      self.table_name = tableName
+    elif context == 'quarantine':
+      self.config.set(AWS_Config_Manager.SECTION_NAME, 'bad_table_name', tableName)
+      self.bad_table_name = tableName
     self.saveConfig()
 
   def setSubscribedTopic(self, subscribedTopic, context):

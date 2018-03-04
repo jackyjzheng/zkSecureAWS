@@ -15,7 +15,8 @@ class AWS_Setup:
 
   def dbSetup(self):
     context = 'db'
-    self.createTable('IoT')
+    self.createTable('IoT', 'standard')
+    self.createTable('IoTQuarantine', 'quarantine')
     if self.createRole('zymkey_role', 'trust_document.txt', context) == -1:
       sys.exit()
     if self.createPolicy('lambda_dynamofullaccess', 'lambda_dynamo_policy.txt', context) == -1:
@@ -40,7 +41,7 @@ class AWS_Setup:
     self.createLambdaTrigger('1337', context)
     print('Succesful for the modifyLambda function.')
 
-  def createTable(self, tableName):
+  def createTable(self, tableName, context):
     print('---Creating DynamoDB table...this may take up to 20 seconds---')
     try:
       dynamodb = boto3.resource('dynamodb')
@@ -77,7 +78,7 @@ class AWS_Setup:
       if error_code == "ResourceInUseException":
         print('Table already exists...skipping table creation and updating table name in /.aws/zymkeyconfig...')
     finally:
-      self.aws_config.setTable(tableName)
+      self.aws_config.setTable(tableName, context)
 
   # roleName is the name of the role to be created
   # trustFile located under the policies folder in the repo (ie. trust_document.txt)

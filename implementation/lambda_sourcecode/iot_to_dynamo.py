@@ -23,6 +23,7 @@ def lambda_handler(event, context):
 	data = event['data']
 	byte_data = bytearray.fromhex(data['encryptedData'])
 	byte_signature = bytearray.fromhex(data['signature'])
+	dynamodb = boto3.resource('dynamodb')
 
 	if verify_ecdsa_signature(data=byte_data, sig=byte_signature, pub_key=pub_key_pem):
 		print('Signature matches data and public key pair.')
@@ -30,4 +31,6 @@ def lambda_handler(event, context):
 		table = dynamodb.Table('IoT')
 		table.put_item(Item = event)
 	else:
+		table = dynamodb.Table('IoTQuarantine')
+		table.put_item(Item = event)
 		print('Signature is invalid; it does not correspond to the public key.')
