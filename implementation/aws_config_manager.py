@@ -105,7 +105,7 @@ class AWS_Config_Manager:
       self.sig_role_name = roleName
     elif context == 'db':
       self.config.set(AWS_Config_Manager.SECTION_NAME, 'db_role_name', roleName)
-      self.db_role_name
+      self.db_role_name = roleName
     self.saveConfig()
 
   def setPolicy(self, policyArn, context):
