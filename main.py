@@ -51,6 +51,6 @@ We finish by registering Zymkey cert and getting it functional.
 (1) Register Zymkey device certificate with AWS IoT simply by presenting it to AWS.
 (2) Create and attach policy to this certificate allowing it to publish data
 '''
-zkRegisterReponse = AWSManager.register_device_cert_AWS()
-AWSManager.publish_cert_id(zkRegisterReponse)
+zkRegisterResponse = AWSManager.register_device_cert_AWS()
+AWSManager.publish_cert_id(zkRegisterResponse)
 AWSManager.create_initial_policy(targetARN=zkRegisterResponse['certificateArn'])

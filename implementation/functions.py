@@ -2,6 +2,7 @@ import OpenSSL
 import boto3
 import os
 import subprocess
+import json
 from aws_config_manager import AWS_Config_Manager
 from botocore.exceptions import ClientError
 
@@ -124,7 +125,7 @@ class AWSCertManager(object):
       caPem = caFile.read()
     with open(self.zkCertPath) as certFile:
       certPem = certFile.read()
-    response = boto3client.register_certificate(
+    response = boto3Client.register_certificate(
       certificatePem=self.zkCert,
       caCertificatePem=self.caCert,
       status="ACTIVE"
@@ -132,7 +133,7 @@ class AWSCertManager(object):
     self.AWSConfig.setIotCert(response['certificateArn'])
     return response
 
-  def publish_cert_id(certCreateResponse):
+  def publish_cert_id(self, certCreateResponse):
     '''
     Publish certificate ID to certID topic to trigger lambda.
     '''
@@ -140,13 +141,14 @@ class AWSCertManager(object):
     publishCertClient.publish(
       topic='certID',
       qos=1,
-      payload=json.dumps(certCreateReponse)
+      payload=json.dumps(certCreateResponse)
     ) 
   
   def create_initial_policy(self, targetARN):
     '''
     Creates a policy for your device to connect and publish data to AWS IoT
     '''
+    print('---Creating IoT Policy---')
     policyName = 'IoTPublishPolicy'
     client = boto3.client('iot')
     with open("implementation/policies/iot_policy.txt") as policyJson:
@@ -167,7 +169,7 @@ class AWSCertManager(object):
       if errorCode == 'ResourceAlreadyExistsException':
         print('IoT policy already exists...skipping IoT policy creation and updating policy name in ~/.aws/zymkeyconfig...')
         getResponse = client.get_policy(policyName = policyName)
-        self.AWConfig.setIotPolicy(getResponse['policyArn'])
+        self.AWSConfig.setIotPolicy(getResponse['policyArn'])
         return client.attach_policy(
           policyName = policyName,
           target = targetARN
