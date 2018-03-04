@@ -4,7 +4,6 @@ import sys
 import os
 import time
 import urllib2
-
 import json
 import boto3
 import hashlib
