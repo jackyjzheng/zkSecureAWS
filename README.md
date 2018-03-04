@@ -7,7 +7,7 @@ Furthermore our application will demonstrate the storage of encrypted and authen
 Additional features include the storage of data encrypted on the filesystem when internet connection goes down, to be re-published when connection comes back up, data will remain in time-order once republished to the database.
 
 ### Application Overview
-
+---
 Our application automates the setup of AWS infrastructure and allows a user to automatically publish encrypted and authenticated data to AWS servers through a secure pipeline with Zymkey straight out of the box. Specifically client authentication is done through HTTPS, with the client presenting an X.509 certificate presenting Zymkey's public ECDSA key, and then verifying to the server that they have the corresponding private key. Since Zymkey stores the  private key outside of the file system and is un-readable and un-exportable, and only works when bound to as specific Raspberry Pi, secure paradigm and shit.
 
 All certificates are signed by a Certificate Authority of the user's choice. The AWS endpoint will only accept Certificates and Certificate Authorities registered on the user's AWS account, this setup is automated, all the user needs to do is point to their Certificate Authority files.
