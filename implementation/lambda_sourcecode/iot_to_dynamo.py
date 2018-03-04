@@ -12,7 +12,7 @@ def verify_ecdsa_signature(data, sig, pub_key):
 			return True
 		else:
 			return False
-	except exception as e:
+	except Exception as e:
 		return False
 
 def lambda_handler(event, context):
