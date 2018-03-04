@@ -221,6 +221,7 @@ class AWS_Setup:
           Code = {
             'ZipFile': filecontent
           },
+          Timeout = 5,
           Description = 'Lambda function for publishing data from IoT to DynamoDB',
         )
         break
