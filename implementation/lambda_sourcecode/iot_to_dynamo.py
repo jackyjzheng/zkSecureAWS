@@ -27,7 +27,6 @@ def lambda_handler(event, context):
 
 	if verify_ecdsa_signature(data=byte_data, sig=byte_signature, pub_key=pub_key_pem):
 		print('Signature matches data and public key pair.')
-		dynamodb = boto3.resource('dynamodb') 
 		table = dynamodb.Table('IoT')
 		table.put_item(Item = event)
 	else:
