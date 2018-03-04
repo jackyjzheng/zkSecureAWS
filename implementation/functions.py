@@ -31,10 +31,11 @@ class zkCertManager(object):
   """
   HELPER FUNCTIONS
   """
-  def gen_zymkey_csr(self, csrFileName, destFilePath): #Add filepath to store csr later  
+  def gen_zymkey_csr(self, csrFilename, destFilePath): #Add filepath to store csr later  
+    print("---Generating Zymkey Certificate, Enter your Certificate Info---")
     subprocess.check_call(['./bash_scripts/gen_csr.sh', csrFilename, destFilePath])
 
-  def sign_csr_with_ca(self, csrFilename, crtFilename, destFilepath):
+  def sign_csr_with_ca(self, csrFilename, crtFilename, destFilePath):
     '''
     Invokes sign_csr bash script.
     '''
@@ -54,7 +55,7 @@ class AWSCertManager(object):
       device_cert=PEM of your Zymkey device certificate in string format.
   """
   def __init__(self, caCertPath="", caKeyPath="", deviceCertPath=""):
-    self.caPath = caCertpath
+    self.caPath = caCertPath
     self.caKeyPath = caKeyPath
     self.zkCertPath = deviceCertPath
     self.caCert = read_from_file(caCertPath)
@@ -66,6 +67,7 @@ class AWSCertManager(object):
     '''
     Generate a CSR file using OpenSSL with CN=registration_code. This will be signed by CA and sent to Amazon to verify you can sign with CA.
     '''
+    print("---Generating RSA Certificate for Amazon validation---")
     client = boto3.client('iot')
     response = client.get_registration_code()
     registrationKey = response['registrationCode']
@@ -85,6 +87,7 @@ class AWSCertManager(object):
     '''
     Registers your CA with your AWS IoT accuont
     '''
+    print("---Registering your CA with AWS IoT---")
     client = boto3.client('iot')
     with open(verifyCertPath, 'r') as f:
       verificationCert=f.read()

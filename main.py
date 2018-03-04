@@ -39,8 +39,8 @@ AWSManager = AWSCertManager(caCertPath=caCertPathInput, caKeyPath=caKeyPathInput
 verificationPem = AWSManager.gen_verify_csr()
 with open("verify.csr", 'w') as f:
   f.write(verificationPem)
-zkCertManager.sign_csr_with_ca(csrFileName="verify.csr", crtFileName="verify.crt", destFilePath="./", )
-if AWS_Manager.register_CA_AWS(verify_crt_path="verify.crt") == -1:
+zkCertManager.sign_csr_with_ca(csrFilename="verify.csr", crtFilename="verify.crt", destFilePath="./", )
+if AWSManager.register_CA_AWS(verifyCertPath="verify.crt") == -1:
 	sys.exit()
 AWSsetup = AWS_Setup()
 AWSsetup.sigSetup()
