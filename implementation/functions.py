@@ -121,7 +121,7 @@ class AWSCertManager(object):
     '''
     boto3Client = boto3.client('iot')
     with open(self.caPath) as caFile:
-      caPem = cafile.read()
+      caPem = caFile.read()
     with open(self.zkCertPath) as certFile:
       certPem = certFile.read()
     response = boto3client.register_certificate(
