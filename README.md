@@ -6,7 +6,14 @@ Furthermore our application will demonstrate the storage of encrypted and authen
 
 Additional features include the storage of data encrypted on the filesystem when internet connection goes down, to be re-published when connection comes back up, data will remain in time-order once republished to the database.
 
-### Application Overview
+## Table of Contents
+1. [Application Overview](#app_overview)
+2. [Dependencies](#dependencies)
+3. [Setup](#setup)
+4. [Application Architecture](#app_architecture)
+5. [License](#license)
+
+### Application Overview [](#){name=app_overview}
 ---
 Our application automates the setup of AWS infrastructure and allows a user to automatically publish encrypted and authenticated data to AWS servers through a secure pipeline with Zymkey straight out of the box. Specifically client authentication is done through HTTPS, with the client presenting an X.509 certificate presenting Zymkey's public ECDSA key, and then verifying to the server that they have the corresponding private key. Since Zymkey stores the  private key outside of the file system and is un-readable and un-exportable, and only works when bound to as specific Raspberry Pi, secure paradigm and shit.
 
@@ -20,7 +27,7 @@ Our application grabs temperature data from multiple temperature sensors attache
 
 Finally our applications allows the storage of data encrypted on disk when connection drops. Once internet connection is restored data is read from disk and republished. This part of the sensor application is multi-threaded and a more technical description can be found in the technical documentation.
 
-### Dependencies
+### Dependencies [](#){name=dependencies}
 ---
 Depdencies can be installed via a bash script.
 
@@ -32,7 +39,7 @@ Depdencies can be installed via a bash script.
 * [jsrsasign](https://kjur.github.io/jsrsasign/) - [Version: 8.06]
 * [python-edsa](https://github.com/warner/python-ecdsa) - [Version: 0.13]
 ---
-### Setup
+### Setup [](#){name=setup}
 (1) Bind the Zymkey to your Raspberry Pi. We recommend doing a temporary development binding to setup up your workflow properly before doing a permanent binding. Follow the instructions [here]() to get all more information, can be done simply by running the following command.
 ```
  curl -G https://s3.amazonaws.com/zk-sw-repo/install_zk_sw.sh | sudo bash
@@ -50,4 +57,7 @@ python main.py
 ```
 python publish_data.py
 ```
-### Application Architecture
+### Application Architecture [](#){name=app_architecture}
+---
+### License [](#){name=license}
+---
