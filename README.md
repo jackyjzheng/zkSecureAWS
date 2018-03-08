@@ -26,7 +26,7 @@ The ECDSA key used for establishing a secure connection with AWS is also used to
 
 Data is stored encrypted in a DynamoDB database indexed by client generated timestamps. Data that fails signature authentication is quarintined in a seperation partition of the database, to allow for examination in the future.
 
-Our application grabs temperature data from multiple temperature sensors attached to the Raspberry Pi, the [DS18B20 OneWire probes](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/hardware). A timestamp is generated for the data and  it is encrypted via. AES and signed via ECDSA, with the result being hex-encoded. Data is then assembled in a json format, before it is sent to AWS Servers.
+Our application grabs temperature data from multiple temperature sensors attached to the Raspberry Pi, the [DS18B20 OneWire probes](https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/hardware). A timestamp is generated for the data and  it is encrypted via. AES and signed via ECDSA, with the result being hex-encoded. Data is then assembled in a json format, before it is sent to AWS Servers. **We also provide a script that will generate random temperature data as a demonstration that will be signed, encrypted and published to AWS.**
 
 Finally our applications allows the storage of data encrypted on disk when connection drops. Once internet connection is restored data is read from disk and republished. This part of the sensor application is multi-threaded and a more technical description can be found in the technical documentation.
 
@@ -49,9 +49,11 @@ The following software are used by our Signature Verification lambda functions. 
 ### <a name="setup"/> Setup
 ---
 #### Zymkey Binding
-Since we are using the Zymkey as a cryptographic HSM, we need to set it up on your Raspberry Pi. We recommend doing a temporary development binding to begin with and allow you to set up your workflow properly before doing a permanent binding. Look at the following post [here](https://community.zymbit.com/t/getting-started-with-zymkey-4i/202/6) to get a more information. However, from a fresh install of Raspbian Jessie, it boils down to 2 simple steps.
+Since we are using the Zymkey as a cryptographic HSM, we need to set it up on your Raspberry Pi. We recommend doing a temporary development binding to begin with and allow you to set up your workflow properly before doing a permanent binding. 
 
-(1) The first step is to configure the state of the I2C bus to “ON”.  This can be done by logging in to your pi and running:
+Look at the following post [here](https://community.zymbit.com/t/getting-started-with-zymkey-4i/202/6) to get a more information. However, from a fresh install of Raspbian Jessie, it boils down to 2 simple steps.
+
+**(1)** The first step is to configure the state of the I2C bus to “ON”.  This can be done by logging in to your pi and running:
 ```
 sudo raspi-config
 Select Interfacing Options -> I2C
@@ -60,47 +62,47 @@ Select Finish
 ```
 Your I2C bus is now configured and ready to talk to the Zymkey. 
 
-(2) The next step is to install the pre-requisite Zymkey software and to do developer binding. This can be done by running the following command:
+**(2)** The next step is to install the pre-requisite Zymkey software and to do developer binding. This can be done by running the following command:
 ```
  curl -G https://s3.amazonaws.com/zk-sw-repo/install_zk_sw.sh | sudo bash
 ```
-(3) Ensure your Zymkey is bound properly by running the following command, and getting a valid response, if you get any errors visit the [Zymbit community page](https://community.zymbit.com/) for help.
+**(3)** Ensure your Zymkey is bound properly by running the following command, and getting a valid response, if you get any errors visit the [Zymbit community page](https://community.zymbit.com/) for help.
 ```python
 python
 import zymkey
 zymkey.client.sign('Hello World!')
 ```
 #### Connecting your AWS Account
-We now need to configure your AWS account so that our python scripts, specifically the boto3 module, is able to access your account and set up the application. **Note that the current setup requires you to create an IAM user with Admin credentials**, with credentials stored on your file system. These credentials are planned to be locked by Zymkey's AES key after use, and we will give the option of deleting them after they are used, but we are working on creating a User with more restrictive access privileges in the future. Feel free to delete the User and Credentials manually after application setup if you wish.
+We now need to configure your AWS account so that our python scripts, specifically the boto3 module, is able to access your account and set up the application. **Note that the current setup requires you to create an IAM user with Admin credentials**, with credentials stored on your file system. 
 
-**---Instructions---**
+These credentials are planned to be locked by Zymkey's AES key after use, and we will give the option of deleting them after they are used, but we are working on creating a User with more restrictive access privileges in the future. Feel free to delete the User and Credentials manually after application setup if you wish.
 
-(1) Sign in to your **AWS console** here: https://aws.amazon.com/console/
+**(1)** Sign in to your **AWS console** here: https://aws.amazon.com/console/
 
-(2) From the **AWS Console**, choose the **IAM** service.
+**(2)** From the **AWS Console**, choose the **IAM** service.
 
-(3) From **IAM**, go to **Users** and then **Add User**.
+**(3)** From **IAM**, go to **Users** and then **Add User**.
 
-(4) Give the User an appropriate name, and give it **Programmatic Access**. Choose to **Attach Existing Policies Directly** and give it **AdministratorAccess**.
+**(4)** Give the User an appropriate name, and give it **Programmatic Access**. Choose to **Attach Existing Policies Directly** and give it **AdministratorAccess**.
 
-(5) **Save the Access key ID and Secret access key**, it will need to be input into the script. If you wish to save your credentials yourself you can create a credentials file in **~/.aws/credentials**.
+**(5)** **Save the Access key ID and Secret access key**, it will need to be input into the script. If you wish to save your credentials yourself you can create a credentials file in **~/.aws/credentials**.
 
 #### Running the Script
-Now we will setup the application by running the python script **main.py**. The script will ask for **two things**: the path to your **CA certificate** and **CA key file**, and the credentials for your AWS account. Note that if you don't have a CA you can generate a test CA by running the script.
+Now we will setup the application by running the python script **main.py**. The script will ask for **two things**: the path to your **CA certificate** and **CA key file**, and the credentials for your AWS account. Note that if you don't have a CA you can generate a test CA by running our bash script.
 
-(1) Install the boto3 module with the following command:
+**(1)** Install the boto3 module with the following command:
 ```
 sudo pip install boto3
 ```
-(2) Install python-openssl
+**(2)** Install python-openssl
 ```
 sudo apt-get install python-openssl
 ```
-(3) Next we clone the github repo:
+**(3)** Next we clone the github repo:
 ```
 git clone https://github.com/jackyjzheng/zkSecureAWS.git
 ```
-(4) We want change into the appropriate directory, which is the main directory where the scripts are located:
+**(4)** We want change into the appropriate directory, which is the main directory where the scripts are located:
 ```
 cd zkSecureAWS
 ```
@@ -113,20 +115,20 @@ bash bash_scripts/gen_example_ca.sh
 Note that the CA is then stored in bash_scripts/CA_files. There certificate is stored as zk_ca.pem and the key as zk_ca.key.
 
 ---
-(5) Create the following directory if it doesn't already exist:
+**(5)** Create the following directory if it doesn't already exist:
 ```
 mkdir ~/.aws
 ```
-(6) Run main.py and follow the instructions making sure to copy in your AWS credentials. **Make sure your time and date are correct!**
+**(6)** Run main.py and follow the instructions making sure to copy in your AWS credentials. **Make sure your time and date are correct!**
 ```
 sudo sntp -s time.google.com
 python main.py
 ```
-(7) If everything is sucessful you can begin publishing data securely with your certificates! Try out the publish_data.py script. You will find the data published to your AWS IoT gateway under the topic /Zymkey. It is then routed to a lambda function which will handle signature verification, and stored in your DynamoDB database.
+**(7)** If everything is sucessful you can begin publishing data securely with your certificates! Try out the publish_data.py script. You will find the data published to your AWS IoT gateway under the topic /Zymkey. It is then routed to a lambda function which will handle signature verification, and stored in your DynamoDB database.
 ```
 python publish_data.py
 ```
-(8) Now try the publish_bad_data.py script. The data will still make it to the IoT gateway, but will not pass signature verification. As a result it will be published to the quarantined database.
+**(8)** Now try the publish_bad_data.py script. The data will still make it to the IoT gateway, but will not pass signature verification. As a result it will be published to the quarantined database.
 ### <a name="app_architecture"/> Application Architecture
 ---
 ### <a name="license"/> License 
