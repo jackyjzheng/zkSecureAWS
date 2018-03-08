@@ -41,6 +41,9 @@ if __name__ == "__main__":
     #base_dir = '/sys/bus/w1/devices/'
     #device_folder = glob.glob(base_dir + '28*')[0]
     #device_file = device_folder + '/w1_slave'	
+    caCertPathInput = raw_input("Please enter the absolute file path for your CA cert. PEM file: ")
+	zkCertPathInput = raw_input("Please enter the absolute file path for your Zymkey cert. PEM file: ")
+
     boto3client = boto3.client('iot')
     topic = "Zymkey"
     AWS_ENDPOINT = "https://" + str(boto3client.describe_endpoint()['endpointAddress']) + ":8443/topics/" + topic + "?qos=1"    
@@ -54,5 +57,5 @@ if __name__ == "__main__":
         data = {"ip": ip, "signature": binascii.hexlify(signature), "encryptedData": binascii.hexlify(encrypted_data), "tempData": temp_data}
         post_field = {"deviceId": device_id, "timestamp": str(timestamp), "data": data}
         json_data = json.dumps(post_field)
-        ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path='/home/pi/Desktop/Zymkey-AWS-Kit/bash_scripts/CA_files/zk_ca.pem', Cert_Path='/home/pi/Desktop/Zymkey-AWS-Kit/zymkey.crt')
+        ZK_AWS_Publish(url=AWS_ENDPOINT, post_field=json_data, CA_Path=caCertPathInput, Cert_Path=zkCertPathInput)
 
