@@ -74,10 +74,15 @@ zymkey.client.sign('Hello World!')
 We now need to configure your AWS account so that our python scripts, specifically the boto3 module, is able to access your account and set up the application. **Note that the current setup requires you to create an IAM user with Admin credentials**, with credentials stored on your file system. These credentials are planned to be locked by Zymkey's AES key after use, and we will give the option of deleting them after they are used, but we are working on creating a User with more restrictive access privileges in the future. Feel free to delete the User and Credentials manually after application setup if you wish.
 
 **---Instructions---**
+
 (1) Sign in to your **AWS console** here: https://aws.amazon.com/console/
+
 (2) From the **AWS Console**, choose the **IAM** service.
+
 (3) From **IAM**, go to **Users** and then **Add User**.
+
 (4) Give the User an appropriate name, and give it **Programmatic Access**. Choose to **Attach Existing Policies Directly** and give it **AdministratorAccess**.
+
 (5) **Save the Access key ID and Secret access key**, it will need to be input into the script. If you wish to save your credentials yourself you can create a credentials file in **~/.aws/credentials**.
 
 #### Running the Script
